@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { Search, Plus, Filter, ArrowRight } from 'lucide-react-native';
-import { useTheme } from '@/components/context/ThemeContext';
+import { useTheme } from '@/context/ThemeContext';
 
 // Mock data for expenses
 const mockExpenses = [

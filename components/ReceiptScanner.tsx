@@ -1,6 +1,13 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, Platform } from 'react-native';
-import { useTheme } from './context/ThemeContext';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Image,
+  Platform,
+} from 'react-native';
+import { useTheme } from '../context/ThemeContext';
 import { Camera, Upload, X, RefreshCw } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { createWorker } from 'tesseract.js';
@@ -15,7 +22,10 @@ interface ReceiptScannerProps {
   onClose: () => void;
 }
 
-export default function ReceiptScanner({ onScanComplete, onClose }: ReceiptScannerProps) {
+export default function ReceiptScanner({
+  onScanComplete,
+  onClose,
+}: ReceiptScannerProps) {
   const { colors } = useTheme();
   const [image, setImage] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
@@ -46,14 +56,16 @@ export default function ReceiptScanner({ onScanComplete, onClose }: ReceiptScann
 
     try {
       const worker = await createWorker('eng');
-      
-      const { data: { text } } = await worker.recognize(imageUri);
-      
+
+      const {
+        data: { text },
+      } = await worker.recognize(imageUri);
+
       await worker.terminate();
 
       // Process the extracted text
       const result = parseReceiptText(text);
-      
+
       onScanComplete(result);
     } catch (err) {
       setError('Failed to process receipt');
@@ -72,9 +84,10 @@ export default function ReceiptScanner({ onScanComplete, onClose }: ReceiptScann
     const items: Array<{ description: string; amount: number }> = [];
 
     // Look for total amount (usually preceded by "TOTAL" or "AMOUNT")
-    const totalLine = lines.find(line => 
-      line.toLowerCase().includes('total') || 
-      line.toLowerCase().includes('amount')
+    const totalLine = lines.find(
+      (line) =>
+        line.toLowerCase().includes('total') ||
+        line.toLowerCase().includes('amount')
     );
     if (totalLine) {
       const matches = totalLine.match(/\$?\d+\.\d{2}/);
@@ -84,7 +97,7 @@ export default function ReceiptScanner({ onScanComplete, onClose }: ReceiptScann
     }
 
     // Look for date (common formats: MM/DD/YYYY or DD/MM/YYYY)
-    const dateLine = lines.find(line => 
+    const dateLine = lines.find((line) =>
       line.match(/\d{1,2}[/-]\d{1,2}[/-]\d{2,4}/)
     );
     if (dateLine) {
@@ -95,7 +108,7 @@ export default function ReceiptScanner({ onScanComplete, onClose }: ReceiptScann
     merchant = lines[0]?.trim();
 
     // Look for items with prices
-    lines.forEach(line => {
+    lines.forEach((line) => {
       const priceMatch = line.match(/\$?\d+\.\d{2}/);
       if (priceMatch) {
         const amount = parseFloat(priceMatch[0].replace('$', ''));
@@ -145,7 +158,7 @@ export default function ReceiptScanner({ onScanComplete, onClose }: ReceiptScann
     },
     imageContainer: {
       width: '100%',
-      aspectRatio: 3/4,
+      aspectRatio: 3 / 4,
       backgroundColor: colors.cardHighlight,
       borderRadius: 12,
       overflow: 'hidden',
@@ -219,7 +232,11 @@ export default function ReceiptScanner({ onScanComplete, onClose }: ReceiptScann
       <View style={styles.content}>
         <View style={styles.imageContainer}>
           {image ? (
-            <Image source={{ uri: image }} style={styles.image} resizeMode="contain" />
+            <Image
+              source={{ uri: image }}
+              style={styles.image}
+              resizeMode="contain"
+            />
           ) : (
             <View style={styles.placeholder}>
               <Upload size={48} color={colors.secondaryText} />
@@ -240,7 +257,10 @@ export default function ReceiptScanner({ onScanComplete, onClose }: ReceiptScann
         </TouchableOpacity>
 
         {image && (
-          <TouchableOpacity style={[styles.button, { marginTop: 8 }]} onPress={retryScanning}>
+          <TouchableOpacity
+            style={[styles.button, { marginTop: 8 }]}
+            onPress={retryScanning}
+          >
             <RefreshCw size={20} color="#fff" />
             <Text style={styles.buttonText}>Retry Scanning</Text>
           </TouchableOpacity>

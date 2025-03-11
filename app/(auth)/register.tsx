@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { Link, router } from 'expo-router';
 import { Eye, EyeOff, ArrowRight } from 'lucide-react-native';
-import { useTheme } from '@/components/context/ThemeContext';
+import { useTheme } from '@/context/ThemeContext';
 
 export default function RegisterScreen() {
   const { colors } = useTheme();

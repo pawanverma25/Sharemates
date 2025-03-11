@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { Search, Plus, Users, User } from 'lucide-react-native';
-import { useTheme } from '@/components/context/ThemeContext';
+import { useTheme } from '@/context/ThemeContext';
 // Mock data for groups and friends
 const mockGroups = [
   { id: 1, name: 'Roommates', members: 4, totalBalance: 125.5 },

@@ -15,7 +15,7 @@ import {
   Check,
   AlertCircle,
 } from 'lucide-react-native';
-import { useTheme } from '@/components/context/ThemeContext';
+import { useTheme } from '@/context/ThemeContext';
 
 // Mock data for activity feed
 const mockActivities = [
