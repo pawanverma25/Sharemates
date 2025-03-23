@@ -32,10 +32,6 @@ export default function LoginScreen() {
         signIn(email, password);
     };
 
-    useEffect(() => {
-        if (user) router.replace("/dashboard" as RelativePathString);
-    }, []);
-
     const styles = StyleSheet.create({
         container: {
             flex: 1,

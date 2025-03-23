@@ -1,4 +1,6 @@
 import Alert from "@/components/ui/Alert";
+import { useAlert } from "@/context/AlertContext";
+import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
 import * as ImagePicker from "expo-image-picker";
 import { RelativePathString, router } from "expo-router";
@@ -10,7 +12,7 @@ import {
     Phone,
     User,
 } from "lucide-react-native";
-import { useState } from "react";
+import { useImperativeHandle, useState, forwardRef, useEffect } from "react";
 import {
     Image,
     KeyboardAvoidingView,
@@ -23,21 +25,25 @@ import {
     View,
 } from "react-native";
 
-export default function ProfileEditScreen() {
+const ProfileEditScreen = forwardRef((props, ref) => {
     const { colors } = useTheme();
-    const [name, setName] = useState("John Appleseed");
-    const [email, setEmail] = useState("john.appleseed@example.com");
-    const [phone, setPhone] = useState("+1 (555) 123-4567");
-    const [location, setLocation] = useState("San Francisco, CA");
+
+    const { user } = useAuth();
+    const { showAlert, hideAlert } = useAlert();
+
+    useImperativeHandle(ref, () => ({
+        handleSave,
+    }));
+
+    const [name, setName] = useState(user?.name);
+    const [email, setEmail] = useState(user?.email);
     const [avatar, setAvatar] = useState(
         "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&fit=crop"
     );
-    const [showSaveAlert, setShowSaveAlert] = useState(false);
-    const [showVerifyAlert, setShowVerifyAlert] = useState(false);
 
     const pickImage = async () => {
         const result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ["images", "livePhotos"],
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
             allowsEditing: true,
             aspect: [1, 1],
             quality: 1,
@@ -48,12 +54,32 @@ export default function ProfileEditScreen() {
         }
     };
 
+    const handleCancel = () => {
+        router.back();
+    };
+
     const handleSave = () => {
-        setShowSaveAlert(true);
+        showAlert(
+            "Save Changes",
+            "Are you sure you want to save these changes to your profile?",
+            () => {
+                router.back();
+            },
+            () => {}
+        );
     };
 
     const handleVerifyEmail = () => {
-        setShowVerifyAlert(true);
+        showAlert(
+            "Verify Email",
+            "We'll send a verification code to your email address. Would you like to proceed?",
+            () => {
+                router.push("/auth/verify-email" as RelativePathString);
+            },
+            () => {
+                hideAlert();
+            }
+        );
     };
 
     const styles = StyleSheet.create({
@@ -81,16 +107,35 @@ export default function ProfileEditScreen() {
             padding: 8,
             marginLeft: -8,
         },
+        buttonContainer: {
+            flexDirection: "row",
+            justifyContent: "center",
+            gap: 40,
+            paddingHorizontal: 16,
+            marginTop: 16,
+        },
         saveButton: {
-            paddingVertical: 6,
-            paddingHorizontal: 12,
-            borderRadius: 16,
+            paddingVertical: 12,
+            paddingHorizontal: 18,
+            borderRadius: 18,
             backgroundColor: colors.primary,
         },
         saveButtonText: {
             fontFamily: "Inter-Medium",
             fontSize: 14,
             color: "#fff",
+            textAlign: "center",
+        },
+        cancelButton: {
+            backgroundColor: colors.cardHighlight,
+            paddingHorizontal: 18,
+            paddingVertical: 12,
+            borderRadius: 16,
+        },
+        cancelButtonText: {
+            fontFamily: "Inter-Medium",
+            fontSize: 12,
+            color: colors.primary,
         },
         content: {
             flex: 1,
@@ -236,18 +281,21 @@ export default function ProfileEditScreen() {
                                 keyboardType="email-address"
                                 autoCapitalize="none"
                             />
-                            <TouchableOpacity
-                                style={styles.verifyButton}
-                                onPress={handleVerifyEmail}
-                            >
-                                <Text style={styles.verifyButtonText}>
-                                    Verify
-                                </Text>
-                            </TouchableOpacity>
+                            {(user?.emailVerified === "N" ||
+                                user?.email != email) && (
+                                <TouchableOpacity
+                                    style={styles.verifyButton}
+                                    onPress={handleVerifyEmail}
+                                >
+                                    <Text style={styles.verifyButtonText}>
+                                        Verify
+                                    </Text>
+                                </TouchableOpacity>
+                            )}
                         </View>
                     </View>
 
-                    <View style={styles.inputContainer}>
+                    {/* <View style={styles.inputContainer}>
                         <Text style={styles.label}>Phone Number</Text>
                         <View style={styles.input}>
                             <Phone
@@ -264,9 +312,9 @@ export default function ProfileEditScreen() {
                                 keyboardType="phone-pad"
                             />
                         </View>
-                    </View>
+                    </View> */}
 
-                    <View style={styles.inputContainer}>
+                    {/* <View style={styles.inputContainer}>
                         <Text style={styles.label}>Location</Text>
                         <View style={styles.input}>
                             <MapPin
@@ -282,51 +330,25 @@ export default function ProfileEditScreen() {
                                 placeholderTextColor={colors.secondaryText}
                             />
                         </View>
-                    </View>
+                    </View> */}
+                </View>
+                <View style={styles.buttonContainer}>
+                    <TouchableOpacity
+                        style={styles.cancelButton}
+                        onPress={handleCancel}
+                    >
+                        <Text style={styles.cancelButtonText}>Cancel</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={styles.saveButton}
+                        onPress={handleSave}
+                    >
+                        <Text style={styles.saveButtonText}>Save</Text>
+                    </TouchableOpacity>
                 </View>
             </ScrollView>
-
-            <Alert
-                visible={showSaveAlert}
-                title="Save Changes"
-                message="Are you sure you want to save these changes to your profile?"
-                buttons={[
-                    {
-                        text: "Cancel",
-                        style: "cancel",
-                        onPress: () => setShowSaveAlert(false),
-                    },
-                    {
-                        text: "Save",
-                        onPress: () => {
-                            setShowSaveAlert(false);
-                            router.back();
-                        },
-                    },
-                ]}
-            />
-
-            <Alert
-                visible={showVerifyAlert}
-                title="Verify Email"
-                message="We'll send a verification code to your email address. Would you like to proceed?"
-                buttons={[
-                    {
-                        text: "Cancel",
-                        style: "cancel",
-                        onPress: () => setShowVerifyAlert(false),
-                    },
-                    {
-                        text: "Send Code",
-                        onPress: () => {
-                            setShowVerifyAlert(false);
-                            router.push(
-                                "/auth/verify-email" as RelativePathString
-                            );
-                        },
-                    },
-                ]}
-            />
         </KeyboardAvoidingView>
     );
-}
+});
+
+export default ProfileEditScreen;

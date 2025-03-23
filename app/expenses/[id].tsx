@@ -1,88 +1,74 @@
-import { useState } from "react";
-import {
-    View,
-    Text,
-    StyleSheet,
-    ScrollView,
-    TouchableOpacity,
-    Image,
-} from "react-native";
-import { useLocalSearchParams, router } from "expo-router";
-import { useTheme } from "../../context/ThemeContext";
+import { useAlert } from "@/context/AlertContext";
+import { ExpenseSplitType, ExpenseType } from "@/definitions/expense";
+import { expensesService } from "@/services/expensesService";
+import { formatCurrency, formatDate } from "@/util/commonFunctions";
+import { RouteProp, useRoute } from "@react-navigation/native";
+import { router, useLocalSearchParams } from "expo-router";
 import {
     ArrowLeft,
-    Receipt,
-    Users,
     Calendar,
     DollarSign,
     Pencil,
     Trash2,
-    Share2,
-    Download,
+    Users,
 } from "lucide-react-native";
-import CustomAlert from "../../components/ui/Alert";
-
-// Mock data for the expense details
-const mockExpenseDetails = {
-    id: "1",
-    description: "Dinner at Italian Restaurant",
-    amount: 145.8,
-    date: "2024-02-15",
-    paidBy: "You",
-    group: "Trip to Paris",
-    category: "Food & Dining",
-    splits: [
-        { name: "You", amount: 36.45, paid: true },
-        { name: "John Doe", amount: 36.45, paid: false },
-        { name: "Jane Smith", amount: 36.45, paid: true },
-        { name: "Mike Johnson", amount: 36.45, paid: false },
-    ],
-    notes: "Great dinner with friends at La Maison Italian Restaurant",
-    receipt:
-        "https://images.unsplash.com/photo-1572799454914-d3c2da8ba50d?w=400&fit=crop",
-};
+import { useEffect, useState } from "react";
+import {
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+} from "react-native";
+import { useTheme } from "../../context/ThemeContext";
 
 export default function ExpenseDetailsScreen() {
+    const route = useRoute<
+        RouteProp<
+            Record<
+                string,
+                {
+                    expense: string;
+                }
+            >
+        >
+    >();
+    const expense: ExpenseType = JSON.parse(route.params?.expense);
     const { colors } = useTheme();
     const { id } = useLocalSearchParams();
-    const [showDeleteAlert, setShowDeleteAlert] = useState(false);
-    const [showSettleAlert, setShowSettleAlert] = useState(false);
-
-    // In a real app, fetch expense details using the ID
-    const expense = mockExpenseDetails;
-
-    const formatCurrency = (amount: number) => {
-        return `$${amount.toFixed(2)}`;
-    };
-
-    const formatDate = (dateString: string) => {
-        const date = new Date(dateString);
-        return date.toLocaleDateString("en-US", {
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-        });
-    };
+    const { showAlert } = useAlert();
+    const [splits, setSplits] = useState<ExpenseSplitType[]>([]);
 
     const handleEdit = () => {
         router.push(`/expenses/edit/${id}`);
     };
 
     const handleDelete = () => {
-        setShowDeleteAlert(true);
-    };
-
-    const handleShare = () => {
-        // Implement share functionality
-    };
-
-    const handleExport = () => {
-        // Implement export functionality
+        showAlert(
+            "Delete Expense",
+            "Are you sure you want to delete this expense? This action cannot be undone."
+        );
     };
 
     const handleSettleUp = () => {
-        setShowSettleAlert(true);
+        showAlert("Settle Up", "Do you want to mark this expense as settled?");
     };
+
+    const onLoadCallAPIs = async () => {
+        expensesService
+            .getExpenseSplits(Number(id))
+            .then((res) => {
+                debugger;
+                setSplits(res);
+            })
+            .catch((error) => {
+                showAlert("Error", error);
+            });
+    };
+
+    useEffect(() => {
+        onLoadCallAPIs();
+    }, []);
 
     const styles = StyleSheet.create({
         container: {
@@ -90,12 +76,10 @@ export default function ExpenseDetailsScreen() {
             backgroundColor: colors.background,
         },
         header: {
-            backgroundColor: colors.card,
+            backgroundColor: colors.background,
             paddingTop: 60,
             paddingBottom: 20,
             paddingHorizontal: 16,
-            borderBottomWidth: 1,
-            borderBottomColor: colors.border,
         },
         headerTop: {
             flexDirection: "row",
@@ -112,21 +96,26 @@ export default function ExpenseDetailsScreen() {
             gap: 16,
         },
         headerContent: {
-            alignItems: "center",
+            alignItems: "flex-start",
         },
         amount: {
-            fontFamily: "Inter-Bold",
-            fontSize: 36,
-            color: colors.text,
-            marginBottom: 8,
-        },
-        description: {
             fontFamily: "Inter-SemiBold",
             fontSize: 18,
             color: colors.text,
             marginBottom: 4,
         },
-        date: {
+        description: {
+            fontFamily: "Inter-Bold",
+            fontSize: 36,
+            color: colors.text,
+            marginBottom: 8,
+        },
+        body: {
+            fontFamily: "Inter-Regular",
+            fontSize: 14,
+            color: colors.secondaryText,
+        },
+        created: {
             fontFamily: "Inter-Regular",
             fontSize: 14,
             color: colors.secondaryText,
@@ -240,9 +229,6 @@ export default function ExpenseDetailsScreen() {
                         <ArrowLeft size={24} color={colors.text} />
                     </TouchableOpacity>
                     <View style={styles.actionButtons}>
-                        <TouchableOpacity onPress={handleShare}>
-                            <Share2 size={24} color={colors.text} />
-                        </TouchableOpacity>
                         <TouchableOpacity onPress={handleEdit}>
                             <Pencil size={24} color={colors.text} />
                         </TouchableOpacity>
@@ -252,13 +238,16 @@ export default function ExpenseDetailsScreen() {
                     </View>
                 </View>
                 <View style={styles.headerContent}>
-                    <Text style={styles.amount}>
-                        {formatCurrency(expense.amount)}
-                    </Text>
                     <Text style={styles.description}>
                         {expense.description}
                     </Text>
-                    <Text style={styles.date}>{formatDate(expense.date)}</Text>
+                    <Text style={styles.amount}>
+                        {formatCurrency(expense.amount)}
+                    </Text>
+                    <Text style={styles.body}>
+                        Added by {expense.createdBy.name}, on{" "}
+                        {formatDate(expense.date)}
+                    </Text>
                 </View>
             </View>
 
@@ -274,7 +263,7 @@ export default function ExpenseDetailsScreen() {
                         <View style={styles.infoContent}>
                             <Text style={styles.infoLabel}>Group</Text>
                             <Text style={styles.infoValue}>
-                                {expense.group}
+                                {expense.groupName}
                             </Text>
                         </View>
                     </View>
@@ -300,7 +289,7 @@ export default function ExpenseDetailsScreen() {
                         <View style={styles.infoContent}>
                             <Text style={styles.infoLabel}>Paid by</Text>
                             <Text style={styles.infoValue}>
-                                {expense.paidBy}
+                                {expense.paidBy.name}
                             </Text>
                         </View>
                     </View>
@@ -308,31 +297,31 @@ export default function ExpenseDetailsScreen() {
 
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Split Details</Text>
-                    {expense.splits.map((split, index) => (
+                    {splits?.map((split: ExpenseSplitType, index: number) => (
                         <View key={index} style={styles.splitItem}>
                             <View>
                                 <Text style={styles.splitName}>
-                                    {split.name}
+                                    {split.user.name}
                                 </Text>
                                 <Text
                                     style={[
                                         styles.paidStatus,
-                                        split.paid
+                                        split.paid == "Y"
                                             ? styles.paidStatusPaid
                                             : styles.paidStatusUnpaid,
                                     ]}
                                 >
-                                    {split.paid ? "Paid" : "Not paid"}
+                                    {split.paid == "Y" ? "Paid" : "Not paid"}
                                 </Text>
                             </View>
                             <Text style={styles.splitAmount}>
-                                {formatCurrency(split.amount)}
+                                {formatCurrency(split?.amountOwed)}
                             </Text>
                         </View>
                     ))}
                 </View>
 
-                {expense.receipt && (
+                {/* {expense.receipt && (
                     <View style={styles.section}>
                         <Text style={styles.sectionTitle}>Receipt</Text>
                         <View style={styles.receiptContainer}>
@@ -352,14 +341,14 @@ export default function ExpenseDetailsScreen() {
                             </TouchableOpacity>
                         </View>
                     </View>
-                )}
+                )} */}
 
-                {expense.notes && (
+                {/* {expense.notes && (
                     <View style={styles.section}>
                         <Text style={styles.sectionTitle}>Notes</Text>
                         <Text style={styles.notes}>{expense.notes}</Text>
                     </View>
-                )}
+                )} */}
 
                 <TouchableOpacity
                     style={styles.settleButton}
@@ -368,48 +357,6 @@ export default function ExpenseDetailsScreen() {
                     <Text style={styles.settleButtonText}>Settle Up</Text>
                 </TouchableOpacity>
             </ScrollView>
-
-            <CustomAlert
-                visible={showDeleteAlert}
-                title="Delete Expense"
-                message="Are you sure you want to delete this expense? This action cannot be undone."
-                buttons={[
-                    {
-                        text: "Cancel",
-                        style: "cancel",
-                        onPress: () => setShowDeleteAlert(false),
-                    },
-                    {
-                        text: "Delete",
-                        style: "destructive",
-                        onPress: () => {
-                            setShowDeleteAlert(false);
-                            router.back();
-                        },
-                    },
-                ]}
-            />
-
-            <CustomAlert
-                visible={showSettleAlert}
-                title="Settle Up"
-                message="Do you want to mark this expense as settled?"
-                buttons={[
-                    {
-                        text: "Cancel",
-                        style: "cancel",
-                        onPress: () => setShowSettleAlert(false),
-                    },
-                    {
-                        text: "Settle",
-                        style: "default",
-                        onPress: () => {
-                            setShowSettleAlert(false);
-                            router.push("/expenses/settle");
-                        },
-                    },
-                ]}
-            />
         </View>
     );
 }

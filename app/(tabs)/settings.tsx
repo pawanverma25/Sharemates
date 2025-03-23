@@ -22,24 +22,21 @@ import {
 } from "lucide-react-native";
 import { useTheme } from "@/context/ThemeContext";
 import { useAuth } from "@/context/AuthContext";
+import { useAlert } from "@/context/AlertContext";
 export default function SettingsScreen() {
     const { user, signOut } = useAuth();
     const { isDark, setTheme, colors } = useTheme();
+    const { showAlert } = useAlert();
+
     const [notifications, setNotifications] = useState(true);
     const [emailNotifications, setEmailNotifications] = useState(true);
 
     const handleLogout = () => {
-        Alert.alert("Logout", "Are you sure you want to logout?", [
-            {
-                text: "Cancel",
-                style: "cancel",
-            },
-            {
-                text: "Logout",
-                onPress: async () => await signOut(),
-                style: "destructive",
-            },
-        ]);
+        showAlert(
+            "Logout",
+            "Are you sure you want to logout?",
+            async () => await signOut()
+        );
     };
     const styles = StyleSheet.create({
         container: {
@@ -184,10 +181,10 @@ export default function SettingsScreen() {
                     }
                 >
                     <View style={styles.settingIconContainer}>
-                        <User size={20} color="#00A86B" />
+                        <User size={20} color={colors.primary} />
                     </View>
                     <Text style={styles.settingText}>Personal Information</Text>
-                    <ChevronRight size={20} color="#888" />
+                    <ChevronRight size={20} color={colors.secondaryText} />
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -202,7 +199,7 @@ export default function SettingsScreen() {
                         <CreditCard size={20} color="#5B7FFF" />
                     </View>
                     <Text style={styles.settingText}>Payment Methods</Text>
-                    <ChevronRight size={20} color="#888" />
+                    <ChevronRight size={20} color={colors.secondaryText} />
                 </TouchableOpacity>
             </View>
 
@@ -230,7 +227,7 @@ export default function SettingsScreen() {
                     <Switch
                         value={emailNotifications}
                         onValueChange={setEmailNotifications}
-                        trackColor={{ false: "#E1E1E1", true: "#00A86B" }}
+                        trackColor={{ false: "#E1E1E1", true: colors.primary }}
                         thumbColor="#fff"
                     />
                 </View>
@@ -247,7 +244,7 @@ export default function SettingsScreen() {
                     <Text style={styles.settingText}>Currency</Text>
                     <View style={styles.settingValue}>
                         <Text style={styles.settingValueText}>USD</Text>
-                        <ChevronRight size={20} color="#888" />
+                        <ChevronRight size={20} color={colors.secondaryText} />
                     </View>
                 </TouchableOpacity>
 
@@ -261,7 +258,7 @@ export default function SettingsScreen() {
                         onValueChange={() =>
                             setTheme(isDark ? "light" : "dark")
                         }
-                        trackColor={{ false: "#E1E1E1", true: "#00A86B" }}
+                        trackColor={{ false: "#E1E1E1", true: colors.primary }}
                         thumbColor="#fff"
                     />
                 </View>
@@ -275,10 +272,10 @@ export default function SettingsScreen() {
                     onPress={() => router.push("/settings/privacy")}
                 >
                     <View style={styles.settingIconContainer}>
-                        <Shield size={20} color="#00A86B" />
+                        <Shield size={20} color={colors.primary} />
                     </View>
                     <Text style={styles.settingText}>Privacy Policy</Text>
-                    <ChevronRight size={20} color="#888" />
+                    <ChevronRight size={20} color={colors.secondaryText} />
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -289,7 +286,7 @@ export default function SettingsScreen() {
                         <HelpCircle size={20} color="#5B7FFF" />
                     </View>
                     <Text style={styles.settingText}>Help & Support</Text>
-                    <ChevronRight size={20} color="#888" />
+                    <ChevronRight size={20} color={colors.secondaryText} />
                 </TouchableOpacity>
             </View>
 
@@ -297,7 +294,7 @@ export default function SettingsScreen() {
                 style={styles.logoutButton}
                 onPress={handleLogout}
             >
-                <LogOut size={20} color="#FF3B30" />
+                <LogOut size={20} color={colors.error} />
                 <Text style={styles.logoutText}>Logout</Text>
             </TouchableOpacity>
 

@@ -1,5 +1,6 @@
 export type User = {
     name: string;
+    id: string;
     uid: string;
     email: string;
     emailVerified: "Y" | "N";

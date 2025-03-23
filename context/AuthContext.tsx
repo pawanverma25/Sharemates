@@ -23,49 +23,61 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    useEffect(() => {
-        // Check if user is already logged in
-        const loadUser = async () => {
-            try {
-                const userJson = await SecureStore.getItemAsync("user");
-                const token = await SecureStore.getItemAsync("token");
+    // useEffect(() => {
+    //     const loadUser = async () => {
+    //         try {
+    //             const userJson = await SecureStore.getItemAsync("user");
+    //             const token = await SecureStore.getItemAsync("token");
 
-                if (userJson && token) {
-                    setUser(JSON.parse(userJson));
-                    router.replace("/(tabs)" as RelativePathString);
-                }
-            } catch (e) {
-                console.error("Failed to load user from storage", e);
-            } finally {
-                setIsLoading(false);
-            }
-        };
+    //             if (userJson && token) {
+    //                 setUser(JSON.parse(userJson));
+    //                 router.replace("/(tabs)" as RelativePathString);
+    //             }
+    //         } catch (e) {
+    //             console.error("Failed to load user from storage", e);
+    //         } finally {
+    //             setIsLoading(false);
+    //         }
+    //     };
 
-        loadUser();
-    }, []);
+    //     loadUser();
+    // }, []);
 
     const signIn = async (email: string, password: string) => {
         setIsLoading(true);
         setError(null);
-        debugger;
         try {
             const response = await apiClient.post("/login", {
                 email,
                 password,
             });
 
-            debugger;
-
             const authResponse: AuthResponse = response.data;
 
             ToastAndroid.showWithGravity(authResponse.message, 1000, 10);
 
-            // Store user data and token
-            await SecureStore.setItemAsync(
-                "user",
-                JSON.stringify(authResponse.user)
-            );
-            await SecureStore.setItemAsync("token", authResponse.authorization);
+            await Promise.all([
+                SecureStore.setItemAsync(
+                    "user",
+                    JSON.stringify(authResponse.user)
+                ),
+                SecureStore.setItemAsync("token", authResponse.authorization),
+                SecureStore.setItemAsync(
+                    "tokenExpiry",
+                    authResponse.expiresIn + ""
+                ),
+                SecureStore.setItemAsync(
+                    "userCredentials",
+                    JSON.stringify({
+                        email,
+                        password,
+                    })
+                ),
+                SecureStore.setItemAsync(
+                    "lastLogin",
+                    JSON.stringify(new Date().getTime())
+                ),
+            ]);
 
             setUser(authResponse.user);
             router.replace("/dashboard" as RelativePathString);

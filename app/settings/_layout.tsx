@@ -1,13 +1,11 @@
 import { useTheme } from "@/context/ThemeContext";
-import { router, Stack } from "expo-router";
-import PrivacyPolicyScreen from "./privacy";
+import { Stack } from "expo-router";
+import { useRef } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { ArrowLeft } from "lucide-react-native";
+import ProfileEditScreen from "./profile";
 
 export default function AuthLayout() {
     const { colors } = useTheme();
-
-    const handleSave = () => {};
 
     const styles = StyleSheet.create({
         headerText: {
@@ -64,15 +62,7 @@ export default function AuthLayout() {
                 name="profile"
                 options={{
                     headerTitle: (props) => (
-                        <View style={styles.header}>
-                            <Text style={styles.headerTitle}>Edit Profile</Text>
-                            <TouchableOpacity
-                                style={styles.saveButton}
-                                onPress={handleSave}
-                            >
-                                <Text style={styles.saveButtonText}>Save</Text>
-                            </TouchableOpacity>
-                        </View>
+                        <Text style={styles.headerText}>Edit Profile</Text>
                     ),
                 }}
             />

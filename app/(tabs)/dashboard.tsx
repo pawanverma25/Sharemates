@@ -1,74 +1,48 @@
-import { useState, useEffect } from "react";
-import {
-    View,
-    Text,
-    StyleSheet,
-    ScrollView,
-    TouchableOpacity,
-    RefreshControl,
-} from "react-native";
-import { router } from "expo-router";
-import {
-    PlusCircle,
-    ArrowRight,
-    TrendingUp,
-    TrendingDown,
-    DollarSign,
-} from "lucide-react-native";
+import { useAlert } from "@/context/AlertContext";
+import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
-
-// Mock data for dashboard
-const mockBalances = [
-    { id: 1, name: "John Doe", amount: 25.5, isOwed: true },
-    { id: 2, name: "Jane Smith", amount: 12.75, isOwed: false },
-    { id: 3, name: "Mike Johnson", amount: 8.3, isOwed: true },
-];
-
-const mockRecentExpenses = [
-    {
-        id: 1,
-        description: "Dinner at Italian Restaurant",
-        amount: 45.8,
-        date: "2023-06-15",
-        paidBy: "You",
-    },
-    {
-        id: 2,
-        description: "Groceries",
-        amount: 32.5,
-        date: "2023-06-12",
-        paidBy: "John Doe",
-    },
-    {
-        id: 3,
-        description: "Movie tickets",
-        amount: 24.0,
-        date: "2023-06-10",
-        paidBy: "You",
-    },
-];
+import { BalanceType } from "@/definitions/balance";
+import { ExpenseType } from "@/definitions/expense";
+import { dashboardService } from "@/services/dashboardService";
+import { expensesService } from "@/services/expensesService";
+import { formatCurrency, formatDate } from "@/util/commonFunctions";
+import { RelativePathString, router } from "expo-router";
+import {
+    ArrowRight,
+    DollarSign,
+    PlusCircle,
+    TrendingDown,
+    TrendingUp,
+} from "lucide-react-native";
+import { useEffect, useState } from "react";
+import {
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+} from "react-native";
 
 export default function DashboardScreen() {
     const { colors } = useTheme();
+    const { user } = useAuth();
+    const { showAlert } = useAlert();
+
+    const [balances, setBalances] = useState<BalanceType[]>([]);
+    const [expenses, setExpenses] = useState<ExpenseType[]>([]);
     const [refreshing, setRefreshing] = useState(false);
     const [totalOwed, setTotalOwed] = useState(0);
     const [totalOwe, setTotalOwe] = useState(0);
     const [netBalance, setNetBalance] = useState(0);
 
-    useEffect(() => {
-        calculateBalances();
-    }, []);
-
     const calculateBalances = () => {
         let owed = 0;
         let owe = 0;
 
-        mockBalances.forEach((balance) => {
-            if (balance.isOwed) {
-                owed += balance.amount;
-            } else {
-                owe += balance.amount;
-            }
+        balances.forEach((balance) => {
+            if (balance.amount > 0) owed += balance.amount;
+            else owe += Math.abs(balance.amount);
         });
 
         setTotalOwed(owed);
@@ -76,26 +50,42 @@ export default function DashboardScreen() {
         setNetBalance(owed - owe);
     };
 
-    const onRefresh = () => {
+    const onRefresh = async () => {
         setRefreshing(true);
         // In a real app, you would fetch fresh data here
+        await onLoadCallAPIs();
         setTimeout(() => {
             calculateBalances();
             setRefreshing(false);
         }, 1000);
     };
 
-    const formatCurrency = (amount: number) => {
-        return `$${amount.toFixed(2)}`;
+    const onLoadCallAPIs = async () => {
+        dashboardService
+            .fetchBalances(user?.id ?? "-1")
+            .then((res) => {
+                setBalances(res);
+            })
+            .catch((error) => {
+                showAlert("Error", error);
+            });
+        expensesService
+            .fetchExpenses(user?.id ?? "-1", 3)
+            .then((res) => {
+                setExpenses(res);
+            })
+            .catch((error) => {
+                showAlert("Error", error);
+            });
     };
 
-    const formatDate = (dateString: string) => {
-        const date = new Date(dateString);
-        return date.toLocaleDateString("en-US", {
-            month: "short",
-            day: "numeric",
-        });
-    };
+    useEffect(() => {
+        onLoadCallAPIs();
+    }, []);
+
+    useEffect(() => {
+        calculateBalances();
+    }, [balances]);
 
     const styles = StyleSheet.create({
         container: {
@@ -371,23 +361,32 @@ export default function DashboardScreen() {
                     </TouchableOpacity>
                 </View>
 
-                {mockRecentExpenses.map((expense) => (
+                {expenses.map((expense) => (
                     <TouchableOpacity
                         key={expense.id}
                         style={styles.expenseItem}
-                        onPress={() => router.push(`/expenses/${expense.id}`)}
+                        onPress={() =>
+                            router.push({
+                                pathname:
+                                    `/expenses/${expense.id}` as RelativePathString,
+                                params: { expense: JSON.stringify(expense) },
+                            })
+                        }
                     >
                         <View style={styles.expenseDetails}>
                             <Text style={styles.expenseDescription}>
                                 {expense.description}
                             </Text>
                             <Text style={styles.expenseDate}>
-                                {formatDate(expense.date)} • {expense.paidBy}
+                                {formatDate(expense.date)} •{" "}
+                                {expense.paidBy.id == user?.id
+                                    ? "You"
+                                    : expense.paidBy.name}
                             </Text>
                         </View>
                         <View style={styles.expenseAmount}>
                             <Text style={styles.expenseAmountText}>
-                                {formatCurrency(expense.amount)}
+                                {formatCurrency(expense.amountOwed)}
                             </Text>
                             <ArrowRight size={16} color="#888" />
                         </View>
@@ -403,25 +402,27 @@ export default function DashboardScreen() {
                     </TouchableOpacity>
                 </View>
 
-                {mockBalances.map((balance) => (
+                {balances.map((balance, index) => (
                     <TouchableOpacity
-                        key={balance.id}
+                        key={index}
                         style={styles.balanceRow}
                         onPress={() =>
                             router.push(`/groups/friends/${balance.id}`)
                         }
                     >
-                        <Text style={styles.balanceName}>{balance.name}</Text>
+                        <Text style={styles.balanceName}>
+                            {balance.friendName}
+                        </Text>
                         <Text
                             style={[
                                 styles.balanceRowAmount,
-                                balance.isOwed
+                                balance.amount > 0
                                     ? styles.positiveAmount
                                     : styles.negativeAmount,
                             ]}
                         >
-                            {balance.isOwed ? "owes you " : "you owe "}
-                            {formatCurrency(balance.amount)}
+                            {balance.amount > 0 ? "owes you " : "you owe "}
+                            {formatCurrency(Math.abs(balance.amount))}
                         </Text>
                     </TouchableOpacity>
                 ))}
