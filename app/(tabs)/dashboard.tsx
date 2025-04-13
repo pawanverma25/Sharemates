@@ -1,5 +1,6 @@
 import { useAlert } from "@/context/AlertContext";
 import { useAuth } from "@/context/AuthContext";
+import { useRefresh } from "@/context/RefreshContext";
 import { useTheme } from "@/context/ThemeContext";
 import { BalanceType } from "@/definitions/balance";
 import { ExpenseType } from "@/definitions/expense";
@@ -28,10 +29,10 @@ export default function DashboardScreen() {
     const { colors } = useTheme();
     const { user } = useAuth();
     const { showAlert } = useAlert();
+    const { isRefreshing, setIsRefreshing } = useRefresh();
 
     const [balances, setBalances] = useState<BalanceType[]>([]);
     const [expenses, setExpenses] = useState<ExpenseType[]>([]);
-    const [refreshing, setRefreshing] = useState(false);
     const [totalOwed, setTotalOwed] = useState(0);
     const [totalOwe, setTotalOwe] = useState(0);
     const [netBalance, setNetBalance] = useState(0);
@@ -50,29 +51,28 @@ export default function DashboardScreen() {
         setNetBalance(owed - owe);
     };
 
-    const onRefresh = async () => {
-        setRefreshing(true);
-        // In a real app, you would fetch fresh data here
-        await onLoadCallAPIs();
-        setTimeout(() => {
-            calculateBalances();
-            setRefreshing(false);
-        }, 1000);
-    };
-
     const onLoadCallAPIs = async () => {
-        dashboardService
-            .fetchBalances(user?.id ?? "-1")
-            .then((res) => {
-                setBalances(res);
-            })
-            .catch((error) => {
-                showAlert("Error", error);
-            });
-        expensesService
-            .fetchExpenses(user?.id ?? "-1", 3)
-            .then((res) => {
-                setExpenses(res);
+        setIsRefreshing(true);
+        Promise.all([
+            dashboardService
+                .fetchBalances(user?.id ?? -1)
+                .then((res) => {
+                    setBalances(res);
+                })
+                .catch((error) => {
+                    showAlert("Error", error);
+                }),
+            expensesService
+                .fetchExpenses(user?.id ?? -1, 3)
+                .then((res) => {
+                    setExpenses(res);
+                })
+                .catch((error) => {
+                    showAlert("Error", error);
+                }),
+        ])
+            .then(() => {
+                setIsRefreshing(false);
             })
             .catch((error) => {
                 showAlert("Error", error);
@@ -272,7 +272,10 @@ export default function DashboardScreen() {
         <ScrollView
             style={styles.container}
             refreshControl={
-                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+                <RefreshControl
+                    refreshing={isRefreshing}
+                    onRefresh={onLoadCallAPIs}
+                />
             }
         >
             <View style={styles.balanceSummary}>

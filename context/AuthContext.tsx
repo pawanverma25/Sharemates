@@ -3,10 +3,10 @@ import { RelativePathString, router } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import apiClient from "@/services/apiClient";
 import { ToastAndroid } from "react-native";
-import { AuthResponse, User } from "@/definitions/User";
+import { AuthResponse, UserType } from "@/definitions/User";
 
 type AuthContextType = {
-    user: User | null;
+    user: UserType | null;
     isLoading: boolean;
     signIn: (email: string, password: string) => Promise<void>;
     signUp: (name: string, email: string, password: string) => Promise<void>;
@@ -19,8 +19,8 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     children,
 }) => {
-    const [user, setUser] = useState<User | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
+    const [user, setUser] = useState<UserType | null>(null);
+    const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     // useEffect(() => {
@@ -46,11 +46,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     const signIn = async (email: string, password: string) => {
         setIsLoading(true);
         setError(null);
+        debugger;
         try {
             const response = await apiClient.post("/login", {
                 email,
                 password,
             });
+            debugger;
 
             const authResponse: AuthResponse = response.data;
 

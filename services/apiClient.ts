@@ -1,8 +1,6 @@
 import axios from "axios";
 import { storageService } from "./storageService";
-
-// const API_BASE_URL = "http://localhost:8081/api/";
-const API_BASE_URL = "http://10.0.2.2:8081/api/";
+import { API_BASE_URL } from "@/util/constants";
 
 const apiClient = axios.create({
     baseURL: API_BASE_URL,

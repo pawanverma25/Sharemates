@@ -1,14 +1,15 @@
-export type User = {
+export type UserType = {
     name: string;
-    id: string;
+    id: number;
     uid: string;
     email: string;
     emailVerified: "Y" | "N";
+    balance?: number;
 };
 
 export type AuthResponse = {
     message: string;
-    user: User;
+    user: UserType;
     authorization: string;
     expiresIn: number;
 };

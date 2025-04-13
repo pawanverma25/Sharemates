@@ -1,4 +1,4 @@
-import { User } from "./User";
+import { UserType } from "./User";
 
 export type BalanceType = {
     id: string;

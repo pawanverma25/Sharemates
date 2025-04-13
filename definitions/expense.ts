@@ -1,4 +1,4 @@
-import { User } from "./User";
+import { UserType } from "./User";
 
 export type SplitType = "EQUAL" | "EXACT" | "PERCENTAGE" | "SHARES";
 
@@ -19,20 +19,20 @@ export type ExpenseType = {
     expenseUid: string;
     groupId: number;
     groupName: string;
-    createdBy: User;
+    createdBy: UserType;
     description: string;
     amount: number;
     date: string;
     splitType: SplitType;
     splits?: [];
     amountOwed: number;
-    paidBy: User;
+    paidBy: UserType;
 };
 
 export type ExpenseSplitType = {
     id: number;
     expenseId: number;
-    user: User;
+    user: UserType;
     amountOwed: number;
     paid: string;
 };

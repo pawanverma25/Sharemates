@@ -1,14 +1,14 @@
 import apiClient from "./apiClient";
 
-export const dashboardService = {
-    async fetchBalances(userId: number) {
+export const groupService = {
+    async getGroups(userId: number) {
         try {
-            const response = await apiClient.get(`/getBalance/${userId}`);
+            const response = await apiClient.get(`/getGroups/${userId}`);
             return response.data;
         } catch (error: any) {
             throw (
                 error.response?.data ||
-                "Couldn't fetch balances: " + error.message
+                "Couldn't fetch groups List: " + error.message
             );
         }
     },

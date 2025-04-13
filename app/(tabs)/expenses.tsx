@@ -1,5 +1,6 @@
 import { useAlert } from "@/context/AlertContext";
 import { useAuth } from "@/context/AuthContext";
+import { useRefresh } from "@/context/RefreshContext";
 import { useTheme } from "@/context/ThemeContext";
 import { ExpenseType } from "@/definitions/expense";
 import { expensesService } from "@/services/expensesService";
@@ -8,6 +9,7 @@ import { RelativePathString, router } from "expo-router";
 import { ArrowRight, Filter, Plus, Search } from "lucide-react-native";
 import { useEffect, useState } from "react";
 import {
+    RefreshControl,
     ScrollView,
     StyleSheet,
     Text,
@@ -20,6 +22,7 @@ export default function ExpensesScreen() {
     const { user } = useAuth();
     const { colors } = useTheme();
     const { showAlert } = useAlert();
+    const { isRefreshing, setIsRefreshing } = useRefresh();
     const [searchQuery, setSearchQuery] = useState("");
     const [filterVisible, setFilterVisible] = useState(false);
     const [expenses, setExpenses] = useState<ExpenseType[]>([]);
@@ -33,10 +36,12 @@ export default function ExpensesScreen() {
     );
 
     const onLoadCallAPIs = () => {
+        setIsRefreshing(true);
         expensesService
-            .fetchExpenses(user?.id ?? "-1", 100)
+            .fetchExpenses(user?.id ?? -1)
             .then((res) => {
                 setExpenses(res);
+                setIsRefreshing(false);
             })
             .catch((error) => {
                 showAlert("Error", error);
@@ -279,7 +284,15 @@ export default function ExpensesScreen() {
                 </View>
             )}
 
-            <ScrollView style={styles.content}>
+            <ScrollView
+                style={styles.content}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={isRefreshing}
+                        onRefresh={onLoadCallAPIs}
+                    />
+                }
+            >
                 <TouchableOpacity
                     style={styles.addButton}
                     onPress={() => router.push("/expenses/add")}

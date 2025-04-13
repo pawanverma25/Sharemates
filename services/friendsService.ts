@@ -1,14 +1,14 @@
 import apiClient from "./apiClient";
 
-export const dashboardService = {
-    async fetchBalances(userId: number) {
+export const friendsService = {
+    async getFriends(userId: number) {
         try {
-            const response = await apiClient.get(`/getBalance/${userId}`);
+            const response = await apiClient.get(`/getFriends/${userId}`);
             return response.data;
         } catch (error: any) {
             throw (
                 error.response?.data ||
-                "Couldn't fetch balances: " + error.message
+                "Couldn't fetch friends List: " + error.message
             );
         }
     },

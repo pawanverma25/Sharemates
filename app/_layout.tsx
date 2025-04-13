@@ -12,6 +12,7 @@ import { SplashScreen } from "expo-router";
 import { ThemeProvider } from "../context/ThemeContext";
 import { AuthProvider } from "../context/AuthContext";
 import { AlertProvider } from "@/context/AlertContext";
+import { RefreshProvider } from "@/context/RefreshContext";
 
 // Prevent splash screen from auto-hiding
 SplashScreen.preventAutoHideAsync();
@@ -45,21 +46,23 @@ export default function RootLayout() {
         <ThemeProvider>
             <AuthProvider>
                 <AlertProvider>
-                    <Stack screenOptions={{ headerShown: false }}>
-                        <Stack.Screen
-                            name="(auth)"
-                            options={{ headerShown: false }}
-                        />
-                        <Stack.Screen
-                            name="(tabs)"
-                            options={{ headerShown: false }}
-                        />
-                        <Stack.Screen
-                            name="+not-found"
-                            options={{ title: "Oops!" }}
-                        />
-                    </Stack>
-                    <StatusBar style="auto" />
+                    <RefreshProvider>
+                        <Stack screenOptions={{ headerShown: false }}>
+                            <Stack.Screen
+                                name="(auth)"
+                                options={{ headerShown: false }}
+                            />
+                            <Stack.Screen
+                                name="(tabs)"
+                                options={{ headerShown: false }}
+                            />
+                            <Stack.Screen
+                                name="+not-found"
+                                options={{ title: "Oops!" }}
+                            />
+                        </Stack>
+                        <StatusBar style="auto" />
+                    </RefreshProvider>
                 </AlertProvider>
             </AuthProvider>
         </ThemeProvider>

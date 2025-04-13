@@ -1,19 +1,18 @@
+import { useAuth } from "@/context/AuthContext";
+import { useTheme } from "@/context/ThemeContext";
+import { Link, RelativePathString, router } from "expo-router";
+import { ArrowRight, Eye, EyeOff } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
 import {
-    View,
+    ActivityIndicator,
+    KeyboardAvoidingView,
+    ScrollView,
+    StyleSheet,
     Text,
     TextInput,
     TouchableOpacity,
-    StyleSheet,
-    Image,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
+    View,
 } from "react-native";
-import { Link, RelativePathString, router } from "expo-router";
-import { Eye, EyeOff, ArrowRight, LoaderCircle } from "lucide-react-native";
-import { useTheme } from "@/context/ThemeContext";
-import { useAuth } from "@/context/AuthContext";
 
 export default function LoginScreen() {
     const { colors } = useTheme();
@@ -31,6 +30,10 @@ export default function LoginScreen() {
         }
         signIn(email, password);
     };
+
+    useEffect(() => {
+        if (user) router.replace("/dashboard" as RelativePathString);
+    }, []);
 
     const styles = StyleSheet.create({
         container: {
@@ -199,9 +202,9 @@ export default function LoginScreen() {
                         onPress={handleLogin}
                     >
                         {isLoading ? (
-                            <LoaderCircle
+                            <ActivityIndicator
+                                size="small"
                                 color={colors.background}
-                                rotation={20}
                             />
                         ) : (
                             <>

@@ -90,12 +90,13 @@ export default function RegisterScreen() {
       padding: 12,
       fontSize: 16,
       fontFamily: 'Inter-Regular',
+        color: colors.text,
     },
     passwordContainer: {
       flexDirection: 'row',
       borderWidth: 1,
       borderColor: colors.border,
-      borderRadius: 8,
+      borderRadius: 8,  
       overflow: 'hidden',
     },
     passwordInput: {
@@ -103,6 +104,7 @@ export default function RegisterScreen() {
       padding: 12,
       fontSize: 16,
       fontFamily: 'Inter-Regular',
+        color: colors.text,
     },
     eyeIcon: {
       padding: 12,

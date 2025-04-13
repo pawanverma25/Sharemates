@@ -58,7 +58,6 @@ export default function ExpenseDetailsScreen() {
         expensesService
             .getExpenseSplits(Number(id))
             .then((res) => {
-                debugger;
                 setSplits(res);
             })
             .catch((error) => {

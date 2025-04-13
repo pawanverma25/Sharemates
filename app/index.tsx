@@ -19,9 +19,7 @@ export default function Index() {
                     storageService.getItemAsync("userCredentials"),
                     storageService.getItemAsync("lastLogin"),
                 ]);
-            debugger;
             if (user && tokenExpiry && userCredentials && lastLogin) {
-                debugger;
                 // if (Number(tokenExpiry) + Number(lastLogin) < Date.now()) {
                 const { email, password } = JSON.parse(userCredentials);
                 await signIn(email, password);

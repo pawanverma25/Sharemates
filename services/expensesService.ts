@@ -14,12 +14,12 @@ export const expensesService = {
             );
         }
     },
-    async fetchExpenses(userId: string, limit: number) {
+    async fetchExpenses(userId: number, pageable?: number) {
         try {
             const response = await apiClient.get(`/expenses`, {
                 params: {
                     userId: userId,
-                    limit: limit,
+                    pageable: pageable,
                 },
             });
             return response.data;
