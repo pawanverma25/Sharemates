@@ -245,7 +245,7 @@ export default function ExpenseDetailsScreen() {
                     </Text>
                     <Text style={styles.body}>
                         Added by {expense.createdBy.name}, on{" "}
-                        {formatDate(expense.date)}
+                        {formatDate(expense.createdDate)}
                     </Text>
                 </View>
             </View>
@@ -275,7 +275,7 @@ export default function ExpenseDetailsScreen() {
                         <View style={styles.infoContent}>
                             <Text style={styles.infoLabel}>Date</Text>
                             <Text style={styles.infoValue}>
-                                {formatDate(expense.date)}
+                                {formatDate(expense.createdDate)}
                             </Text>
                         </View>
                     </View>

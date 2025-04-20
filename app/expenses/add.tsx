@@ -1,531 +1,904 @@
-import { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, Alert } from 'react-native';
-import { router } from 'expo-router';
-import { ArrowLeft, Users, Calendar, Receipt, DollarSign, Percent, X } from 'lucide-react-native';
-
-// Mock data for friends and groups
-const mockFriends = [
-  { id: 1, name: 'John Doe' },
-  { id: 2, name: 'Jane Smith' },
-  { id: 3, name: 'Mike Johnson' },
-  { id: 4, name: 'Sarah Williams' },
-];
-
-const mockGroups = [
-  { id: 1, name: 'Roommates', members: mockFriends.slice(0, 3) },
-  { id: 2, name: 'Trip to Paris', members: mockFriends.slice(1, 4) },
-  { id: 3, name: 'Office Lunch', members: mockFriends.slice(0, 2) },
-];
+import { useAlert } from "@/context/AlertContext";
+import { useAuth } from "@/context/AuthContext";
+import { useRefresh } from "@/context/RefreshContext";
+import { useTheme } from "@/context/ThemeContext";
+import { ExpenseRequestType, participantType } from "@/definitions/expense";
+import { GroupType } from "@/definitions/group";
+import { UserType } from "@/definitions/User";
+import { expensesService } from "@/services/expensesService";
+import { friendsService } from "@/services/friendsService";
+import { groupService } from "@/services/groupsService";
+import { router } from "expo-router";
+import {
+    ArrowLeft,
+    Calendar,
+    DollarSign,
+    Percent,
+    Receipt,
+    Users,
+    X,
+} from "lucide-react-native";
+import React, { useEffect, useState } from "react";
+import {
+    KeyboardAvoidingView,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
+} from "react-native";
+import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 
 export default function AddExpenseScreen() {
-  const [description, setDescription] = useState('');
-  const [amount, setAmount] = useState('');
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-  const [selectedGroup, setSelectedGroup] = useState<number | null>(null);
-  const [selectedFriends, setSelectedFriends] = useState<number[]>([]);
-  const [splitType, setSplitType] = useState('equal'); // 'equal', 'percentage', 'amount'
-  const [showGroupSelector, setShowGroupSelector] = useState(false);
-  const [showFriendSelector, setShowFriendSelector] = useState(false);
-  const [showDatePicker, setShowDatePicker] = useState(false);
+    const { colors } = useTheme();
+    const { isRefreshing, setIsRefreshing } = useRefresh();
+    const { user } = useAuth();
+    const { showAlert } = useAlert();
 
-  const handleSave = () => {
-    // Basic validation
-    if (!description || !amount) {
-      Alert.alert('Error', 'Please fill in all required fields');
-      return;
-    }
-    
-    if (selectedGroup === null && selectedFriends.length === 0) {
-      Alert.alert('Error', 'Please select a group or at least one friend');
-      return;
-    }
-    
-    // In a real app, you would call your API here
-    Alert.alert(
-      'Success',
-      'Expense added successfully',
-      [
-        { 
-          text: 'OK', 
-          onPress: () => router.back()
+    const [groupList, setGroupList] = useState<GroupType[]>([]);
+    const [friendList, setFriendList] = useState<UserType[]>(user ? [user] : []);
+    const [description, setDescription] = useState("");
+    const [amount, setAmount] = useState<string>("0.00");
+    const [date, setDate] = useState<Date>(new Date());
+    const [selectedGroup, setSelectedGroup] = useState<number | null>(null);
+    const [selectedFriends, setSelectedFriends] = useState<number[]>([]);
+    const [paidBy, setPaidBy] = useState<UserType | null>(null);
+    const [splitType, setSplitType] = useState("EQUAL"); // 'equal', 'percentage', 'amount'
+    const [showGroupSelector, setShowGroupSelector] = useState(false);
+    const [showFriendSelector, setShowFriendSelector] = useState(false);
+    const [showPaidBySelector, setShowPaidBySelector] = useState(false);
+    const [showDatePicker, setShowDatePicker] = useState(false);
+    const [friendSplits, setFriendSplits] = useState<Record<number, number>>({});
+
+    const handleSave = async () => {
+        if (!description || !amount) {
+            showAlert("Error", "Please fill in all required fields");
+            return;
         }
-      ]
+
+        if (selectedGroup === null && selectedFriends.length === 0) {
+            showAlert("Error", "Please select a group or at least one friend");
+            return;
+        }
+        if(splitType === "EXACT" || splitType === "PERCENTAGE") {
+            const totalSplitAmount = Object.values(friendSplits).reduce((sum, amt) => sum + amt, 0);
+            if  (totalSplitAmount !== parseFloat(amount) && splitType === "EXACT") {
+                showAlert("Error", "Total split amounts must equal the expense amount");
+                return;
+            }
+            if( Math.abs(totalSplitAmount - 100) > 0.01 && splitType === "PERCENTAGE") {
+                showAlert("Error", "Total percentage must equal 100%");
+                return;
+            }
+        }
+        const totalAmount = parseFloat(amount);
+        let participants: participantType[] = [];
+
+        if (splitType === "EQUAL") {
+            participants = selectedFriends.map((friendId) => ({
+                id: friendId,
+                amount: totalAmount / selectedFriends.length,
+            }));
+        } else if (splitType === "PERCENTAGE") {
+            const totalPercentage = Object.values(friendSplits).reduce((sum, percent) => sum + percent, 0);
+            if (Math.abs(totalPercentage - 100) > 0.01) {
+                showAlert("Error", "Total percentage must equal 100%");
+                return;
+            }
+            participants = selectedFriends.map((friendId) => ({
+                id: friendId,
+                amount: (totalAmount * friendSplits[friendId]) / 100,
+            }));
+        } else if (splitType === "EXACT") {
+            const totalSplitAmount = Object.values(friendSplits).reduce((sum, amt) => sum + amt, 0);
+            if (Math.abs(totalSplitAmount - totalAmount) > 0.01) {
+                showAlert("Error", "Total split amounts must equal the expense amount");
+                return;
+            }
+            participants = selectedFriends.map((friendId) => ({
+                id: friendId,
+                amount: friendSplits[friendId],
+            }));
+        }
+
+        const expenseSaved = await expensesService.addExpenses({
+            description: description,
+            createdDate: date.toISOString().split("T")[0],
+            paidBy: user?.id,
+            groupId: selectedGroup,
+            createdBy: user?.id,
+            amount: totalAmount,
+            splitType: splitType,
+            participants: participants,
+        } as ExpenseRequestType);
+        if (expenseSaved)
+            showAlert("Success", "Expense added successfully", () =>
+                router.back()
+            );
+        else showAlert("Error", "Something went wrong", () => router.back());
+    };
+
+    const toggleFriendSelection = (friendId: number) => {
+        if (selectedFriends.includes(friendId)) {
+            setSelectedFriends(selectedFriends.filter((id) => id !== friendId));
+            const newSplits = { ...friendSplits };
+            delete newSplits[friendId];
+            setFriendSplits(newSplits);
+        } else {
+            setSelectedFriends([...selectedFriends, friendId]);
+            if (splitType === "EQUAL") {
+                setFriendSplits({
+                    ...friendSplits,
+                    [friendId]: 100 / (selectedFriends.length + 1),
+                });
+            } else {
+                setFriendSplits({
+                    ...friendSplits,
+                    [friendId]: 0,
+                });
+            }
+        }
+    };
+
+    const selectGroup = (groupId: number) => {
+        setSelectedGroup(groupId);
+        // When a group is selected, automatically select all its members
+        const group = groupList.find((g) => g.id === groupId);
+        if (group) {
+            setSelectedFriends(friendList.map((member) => member.id));
+        }
+        setShowGroupSelector(false);
+    };
+
+    const getSelectedGroupName = () => {
+        const group = groupList.find((g) => g.id === selectedGroup);
+        return group ? group.name : "Non-group Expense";
+    };
+
+    const getSelectedFriendsText = () => {
+        if (selectedFriends.length === 0) {
+            return "Select friends";
+        } else if (selectedFriends.length === 1) {
+            const friend = friendList.find((f) => f.id === selectedFriends[0]);
+            return friend ? friend.name : "";
+        } else {
+            return `${selectedFriends.length} friends selected`;
+        }
+    };
+
+    const onLoadCallAPIs = async () => {
+        setIsRefreshing(true);
+        Promise.all([
+            friendsService
+                .getFriends(user?.id ?? -1)
+                .then((res) => {
+                    setFriendList(res);
+                })
+                .catch((error) => {
+                    showAlert("Error", error);
+                }),
+            groupService
+                .getGroups(user?.id ?? -1)
+                .then((res) => {
+                    setGroupList(res);
+                })
+                .catch((error) => {
+                    showAlert("Error", error);
+                }),
+        ])
+            .then(() => {
+                setIsRefreshing(false);
+            })
+            .catch((error) => {
+                showAlert("Error", error);
+            });
+    };
+
+    useEffect(() => {
+        if (selectedGroup) {
+            groupService
+                .getMembers(selectedGroup)
+                .then((res) => {
+                    setFriendList(res);
+                })
+                .catch((error) => {
+                    showAlert("Error", error);
+                });
+        }
+    }, [selectedGroup]);
+
+    useEffect(() => {
+        onLoadCallAPIs();
+    }, []);
+
+    const handleSplitChange = (friendId: number, value: string) => {
+        const numValue = parseFloat(value) || 0;
+        setFriendSplits({
+            ...friendSplits,
+            [friendId]: numValue,
+        });
+    };
+
+    const styles = StyleSheet.create({
+        container: {
+            flex: 1,
+            backgroundColor: colors.background,
+        },
+        header: {
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            backgroundColor: colors.background,
+            paddingTop: 50,
+            paddingBottom: 16,
+            paddingHorizontal: 16,
+            borderBottomWidth: 1,
+            borderBottomColor: colors.border,
+        },
+        backButton: {
+            padding: 4,
+        },
+        headerTitle: {
+            fontFamily: "Inter-SemiBold",
+            fontSize: 18,
+            color: colors.text,
+        },
+        saveButton: {
+            paddingVertical: 6,
+            paddingHorizontal: 12,
+            borderRadius: 16,
+            backgroundColor: colors.primary,
+        },
+        saveButtonText: {
+            fontFamily: "Inter-Medium",
+            fontSize: 14,
+            color: colors.background,
+        },
+        content: {
+            flex: 1,
+        },
+        formSection: {
+            backgroundColor: colors.background,
+            marginBottom: 16,
+            padding: 16,
+        },
+        sectionTitle: {
+            fontFamily: "Inter-SemiBold",
+            fontSize: 16,
+            color: colors.text,
+            marginBottom: 16,
+        },
+        inputContainer: {
+            marginBottom: 16,
+        },
+        label: {
+            fontFamily: "Inter-Medium",
+            fontSize: 14,
+            color: colors.secondaryText,
+            marginBottom: 8,
+        },
+        input: {
+            borderWidth: 1,
+            borderColor: colors.border,
+            borderRadius: 8,
+            color: colors.text,
+            padding: 12,
+            fontFamily: "Inter-Regular",
+            fontSize: 16,
+        },
+        amountInputContainer: {
+            flexDirection: "row",
+            alignItems: "center",
+            borderWidth: 1,
+            borderColor: colors.border,
+            borderRadius: 8,
+            paddingHorizontal: 8,
+            width: "100%",
+        },
+        currencySymbol: {
+            fontFamily: "Inter-Medium",
+            fontSize: 14,
+            color: colors.text,
+            marginRight: 4,
+        },
+        amountInput: {
+            flex: 1,
+            padding: 8,
+            fontFamily: "Inter-Regular",
+            color: colors.text,
+            fontSize: 14,
+        },
+        selectorButton: {
+            flexDirection: "row",
+            alignItems: "center",
+            borderWidth: 1,
+            borderColor: colors.border,
+            borderRadius: 8,
+            padding: 12,
+        },
+        selectorButtonText: {
+            fontFamily: "Inter-Regular",
+            fontSize: 16,
+            color: colors.text,
+            marginLeft: 8,
+            flex: 1,
+        },
+        splitTypeContainer: {
+            flexDirection: "row",
+            justifyContent: "space-between",
+            marginBottom: 16,
+        },
+        splitTypeButton: {
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: colors.background,
+            borderWidth: 1,
+            borderColor: colors.border,
+            borderRadius: 8,
+            padding: 12,
+            flex: 0.32,
+        },
+        activeSplitTypeButton: {
+            backgroundColor: colors.primary,
+            borderColor: colors.primary,
+            borderWidth: 1,
+        },
+        splitTypeText: {
+            fontFamily: "Inter-Medium",
+            fontSize: 14,
+            color: colors.secondaryText,
+            marginLeft: 4,
+        },
+        activeSplitTypeText: {
+            color: colors.background,
+        },
+        splitDescription: {
+            fontFamily: "Inter-Regular",
+            fontSize: 14,
+            color: colors.secondaryText,
+            backgroundColor: colors.background,
+            borderWidth: 1,
+            borderColor: colors.border,
+            padding: 12,
+            borderRadius: 8,
+        },
+        additionalOption: {
+            flexDirection: "row",
+            alignItems: "center",
+            padding: 12,
+            borderWidth: 1,
+            borderColor: colors.border,
+            borderRadius: 8,
+            backgroundColor: colors.background,
+        },
+        additionalOptionText: {
+            fontFamily: "Inter-Medium",
+            fontSize: 14,
+            color: colors.secondaryText,
+            marginLeft: 8,
+        },
+        modalOverlay: {
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "rgba(0, 0, 0, 0.5)",
+            justifyContent: "center",
+            alignItems: "center",
+            zIndex: 1000,
+        },
+        modalContent: {
+            backgroundColor: colors.background,
+            borderRadius: 12,
+            width: "80%",
+            maxHeight: "70%",
+            padding: 16,
+        },
+        modalHeader: {
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: 16,
+        },
+        modalTitle: {
+            fontFamily: "Inter-SemiBold",
+            fontSize: 18,
+            color: colors.text,
+        },
+        modalList: {
+            maxHeight: 300,
+        },
+        modalItem: {
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "center",
+            paddingVertical: 12,
+            borderBottomWidth: 1,
+            borderBottomColor: colors.background,
+        },
+        modalItemText: {
+            fontFamily: "Inter-Regular",
+            fontSize: 16,
+            color: colors.text,
+        },
+        selectedIndicator: {
+            width: 16,
+            height: 16,
+            borderRadius: 8,
+            backgroundColor: colors.primary,
+        },
+        modalButton: {
+            backgroundColor: colors.primary,
+            borderRadius: 8,
+            padding: 12,
+            alignItems: "center",
+            marginTop: 16,
+        },
+        modalButtonText: {
+            fontFamily: "Inter-Medium",
+            fontSize: 16,
+            color: colors.background,
+        },
+        splitInputsContainer: {
+            marginTop: 16,
+        },
+        splitInputRow: {
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: 12,
+        },
+        splitInputLabel: {
+            fontFamily: "Inter-Medium",
+            fontSize: 14,
+            color: colors.text,
+            flex: 1,
+        },
+        splitAmountInputContainer: {
+            flexDirection: "row",
+            alignItems: "center",
+            borderWidth: 1,
+            borderColor: colors.border,
+            borderRadius: 8,
+            paddingHorizontal: 8,
+            paddingVertical: 4,
+            width: 100,
+        },
+        percentageSymbol: {
+            fontFamily: "Inter-Medium",
+            fontSize: 16,
+            color: colors.text,
+            marginLeft: 4,
+        },
+    });
+
+    return (
+        <KeyboardAvoidingView behavior="padding" style={styles.container}>
+            <View style={styles.header}>
+                <TouchableOpacity
+                    style={styles.backButton}
+                    onPress={() => router.back()}
+                >
+                    <ArrowLeft size={24} color={colors.text} />
+                </TouchableOpacity>
+                <Text style={styles.headerTitle}>Add Expense</Text>
+                <TouchableOpacity
+                    style={styles.saveButton}
+                    onPress={handleSave}
+                >
+                    <Text style={styles.saveButtonText}>Save</Text>
+                </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.content}>
+                <View style={styles.formSection}>
+                    <Text style={styles.sectionTitle}>Basic Details</Text>
+
+                    <View style={styles.inputContainer}>
+                        <Text style={styles.label}>Description</Text>
+                        <TextInput
+                            style={styles.input}
+                            placeholderTextColor={colors.secondaryText}
+                            placeholder="What was this expense for?"
+                            value={description}
+                            onChangeText={setDescription}
+                        />
+                    </View>
+
+                    <View style={styles.inputContainer}>
+                        <Text style={styles.label}>Amount</Text>
+                        <View style={styles.amountInputContainer}>
+                            <Text style={styles.currencySymbol}>₹</Text>
+                            <TextInput
+                                style={styles.amountInput}
+                                placeholder="0.00"
+                                keyboardType="decimal-pad"
+                                placeholderTextColor={colors.secondaryText}
+                                value={amount + ""}
+                                onChangeText={(value) => setAmount(value)}
+                            />
+                        </View>
+                    </View>
+
+                    <View style={styles.inputContainer}>
+                        <Text style={styles.label}>Date</Text>
+                        <TouchableOpacity
+                            style={styles.selectorButton}
+                            onPress={() => setShowDatePicker(true)}
+                        >
+                            <Calendar size={20} color={colors.secondaryText} />
+                            <Text style={styles.selectorButtonText}>
+                                {date.toISOString().split("T")[0]}
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+
+                <View style={styles.formSection}>
+                    <Text style={styles.sectionTitle}>Split With</Text>
+
+                    <View style={styles.inputContainer}>
+                        <Text style={styles.label}>Group</Text>
+                        <TouchableOpacity
+                            style={styles.selectorButton}
+                            onPress={() => setShowGroupSelector(true)}
+                        >
+                            <Users size={20} color={colors.secondaryText} />
+                            <Text style={styles.selectorButtonText}>
+                                {getSelectedGroupName()}
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
+
+                    <View style={styles.inputContainer}>
+                        <Text style={styles.label}>Friends</Text>
+                        <TouchableOpacity
+                            style={styles.selectorButton}
+                            onPress={() => setShowFriendSelector(true)}
+                        >
+                            <Users size={20} color={colors.secondaryText} />
+                            <Text style={styles.selectorButtonText}>
+                                {getSelectedFriendsText()}
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
+                    <View style={styles.inputContainer}>
+                        <Text style={styles.label}>Paid By</Text>
+                        <TouchableOpacity
+                            style={styles.selectorButton}
+                            onPress={() => setShowPaidBySelector(true)}
+                        >
+                            <Users size={20} color={colors.secondaryText} />
+                            <Text style={styles.selectorButtonText}>
+                                {paidBy ? paidBy.name : "Select payer"}
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+
+                <View style={styles.formSection}>
+                    <Text style={styles.sectionTitle}>Split Options</Text>
+
+                    <View style={styles.splitTypeContainer}>
+                        <TouchableOpacity
+                            style={[
+                                styles.splitTypeButton,
+                                splitType === "EQUAL" &&
+                                    styles.activeSplitTypeButton,
+                            ]}
+                            onPress={() => setSplitType("EQUAL")}
+                        >
+                            <DollarSign
+                                size={20}
+                                color={
+                                    splitType === "EQUAL"
+                                        ? colors.background
+                                        : colors.secondaryText
+                                }
+                            />
+                            <Text
+                                style={[
+                                    styles.splitTypeText,
+                                    splitType === "EQUAL" &&
+                                        styles.activeSplitTypeText,
+                                ]}
+                            >
+                                Equal
+                            </Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            style={[
+                                styles.splitTypeButton,
+                                splitType === "PERCENTAGE" &&
+                                    styles.activeSplitTypeButton,
+                            ]}
+                            onPress={() => setSplitType("PERCENTAGE")}
+                        >
+                            <Percent
+                                size={20}
+                                color={
+                                    splitType === "PERCENTAGE"
+                                        ? colors.background
+                                        : colors.secondaryText
+                                }
+                            />
+                            <Text
+                                style={[
+                                    styles.splitTypeText,
+                                    splitType === "PERCENTAGE" &&
+                                        styles.activeSplitTypeText,
+                                ]}
+                            >
+                                Percentage
+                            </Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            style={[
+                                styles.splitTypeButton,
+                                splitType === "EXACT" &&
+                                    styles.activeSplitTypeButton,
+                            ]}
+                            onPress={() => setSplitType("EXACT")}
+                        >
+                            <DollarSign
+                                size={20}
+                                color={
+                                    splitType === "EXACT"
+                                        ? colors.background
+                                        : colors.secondaryText
+                                }
+                            />
+                            <Text
+                                style={[
+                                    styles.splitTypeText,
+                                    splitType === "EXACT" &&
+                                        styles.activeSplitTypeText,
+                                ]}
+                            >
+                                Amount
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
+
+                    {splitType === "EQUAL" && (
+                        <Text style={styles.splitDescription}>
+                            The total amount will be split equally among all
+                            selected people.
+                        </Text>
+                    )}
+
+                    {splitType === "PERCENTAGE" && (
+                        <View>
+                            <Text style={styles.splitDescription}>
+                                Specify what percentage of the total each person should pay.
+                            </Text>
+                            <View style={styles.splitInputsContainer}>
+                                {selectedFriends.map((friendId) => {
+                                    const friend = friendList.find((f) => f.id === friendId);
+                                    return (
+                                        <View key={friendId} style={styles.splitInputRow}>
+                                            <Text style={styles.splitInputLabel}>{friend?.name}</Text>
+                                            <View style={styles.splitAmountInputContainer}>
+                                                <TextInput
+                                                    style={styles.amountInput}
+                                                    placeholder="0"
+                                                    keyboardType="numeric"
+                                                    value={friendSplits[friendId]?.toString() || ""}
+                                                    onChangeText={(value) => handleSplitChange(friendId, value)}
+                                                />
+                                                <Text style={styles.percentageSymbol}>%</Text>
+                                            </View>
+                                        </View>
+                                    );
+                                })}
+                            </View>
+                        </View>
+                    )}
+
+                    {splitType === "EXACT" && (
+                        <View>
+                            <Text style={styles.splitDescription}>
+                                Specify the exact amount each person should pay.
+                            </Text>
+                            <View style={styles.splitInputsContainer}>
+                                {selectedFriends.map((friendId) => {
+                                    const friend = friendList.find((f) => f.id === friendId);
+                                    return (
+                                        <View
+                                            key={friendId}
+                                            style={styles.splitInputRow}
+                                        >
+                                            <Text
+                                                style={styles.splitInputLabel}
+                                            >
+                                                {friend?.name}
+                                            </Text>
+                                            <View
+                                                style={
+                                                    styles.splitAmountInputContainer
+                                                }
+                                            >
+                                                <Text
+                                                    style={
+                                                        styles.currencySymbol
+                                                    }
+                                                >
+                                                    ₹
+                                                </Text>
+                                                <TextInput
+                                                    style={styles.amountInput}
+                                                    placeholder="0.00"
+                                                    keyboardType="decimal-pad"
+                                                    value={
+                                                        friendSplits[
+                                                            friendId
+                                                        ]?.toString() || ""
+                                                    }
+                                                    onChangeText={(value) =>
+                                                        handleSplitChange(
+                                                            friendId,
+                                                            value
+                                                        )
+                                                    }
+                                                />
+                                            </View>
+                                        </View>
+                                    );
+                                })}
+                            </View>
+                        </View>
+                    )}
+                </View>
+            </ScrollView>
+
+            {showGroupSelector && (
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>
+                                Select a Group
+                            </Text>
+                            <TouchableOpacity
+                                onPress={() => setShowGroupSelector(false)}
+                            >
+                                <X size={24} color={colors.text} />
+                            </TouchableOpacity>
+                        </View>
+
+                        <ScrollView style={styles.modalList}>
+                            {groupList.map((group) => (
+                                <TouchableOpacity
+                                    key={group.id}
+                                    style={styles.modalItem}
+                                    onPress={() => selectGroup(group.id)}
+                                >
+                                    <Text style={styles.modalItemText}>
+                                        {group.name}
+                                    </Text>
+                                    {selectedGroup === group.id && (
+                                        <View
+                                            style={styles.selectedIndicator}
+                                        />
+                                    )}
+                                </TouchableOpacity>
+                            ))}
+                        </ScrollView>
+                    </View>
+                </View>
+            )}
+
+            {showFriendSelector && (
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>
+                                Select Friends
+                            </Text>
+                            <TouchableOpacity
+                                onPress={() => setShowFriendSelector(false)}
+                            >
+                                <X size={24} color={colors.text} />
+                            </TouchableOpacity>
+                        </View>
+
+                        <ScrollView style={styles.modalList}>
+                            {friendList.map((friend) => (
+                                <TouchableOpacity
+                                    key={friend.id}
+                                    style={styles.modalItem}
+                                    onPress={() =>
+                                        toggleFriendSelection(friend.id)
+                                    }
+                                >
+                                    <Text style={styles.modalItemText}>
+                                        {friend.name}
+                                    </Text>
+                                    {selectedFriends.includes(friend.id) && (
+                                        <View
+                                            style={styles.selectedIndicator}
+                                        />
+                                    )}
+                                </TouchableOpacity>
+                            ))}
+                        </ScrollView>
+
+                        <TouchableOpacity
+                            style={styles.modalButton}
+                            onPress={() => setShowFriendSelector(false)}
+                        >
+                            <Text style={styles.modalButtonText}>Done</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            )}
+            {showPaidBySelector && (
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>Paid By</Text>
+                            <TouchableOpacity
+                                onPress={() => setShowPaidBySelector(false)}
+                            >
+                                <X size={24} color={colors.text} />
+                            </TouchableOpacity>
+                        </View>
+
+                        <ScrollView style={styles.modalList}>
+                            {friendList.map((friend) => (
+                                <TouchableOpacity
+                                    key={friend.id}
+                                    style={styles.modalItem}
+                                    onPress={() =>
+                                        setPaidBy(friend)
+                                    }
+                                >
+                                    <Text style={styles.modalItemText}>
+                                        {friend.name}
+                                    </Text>
+                                    {paidBy?.id === friend.id && (
+                                        <View
+                                            style={styles.selectedIndicator}
+                                        />
+                                    )}
+                                </TouchableOpacity>
+                            ))}
+                        </ScrollView>
+
+                        <TouchableOpacity
+                            style={styles.modalButton}
+                            onPress={() => setShowPaidBySelector(false)}
+                        >
+                            <Text style={styles.modalButtonText}>Done</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            )}
+            {/* {showDatePicker && (
+                <DateTimePicker
+                    value={date}
+                    mode="date"
+                    display="default"
+                    onChange={(
+                        event: DateTimePickerEvent,
+                        selectedDate?: Date
+                    ) => {
+                        const currentDate = selectedDate || date;
+                        setShowDatePicker(false);
+                        setDate(currentDate);
+                    }}
+                    style={{
+                        backgroundColor: colors.background,
+                        borderRadius: 8,
+                        padding: 12,
+                    }}
+                />
+            )} */}
+        </KeyboardAvoidingView>
     );
-  };
-
-  const formatCurrency = (value: string) => {
-    // Remove non-numeric characters
-    const numericValue = value.replace(/[^0-9.]/g, '');
-    
-    // Ensure only one decimal point
-    const parts = numericValue.split('.');
-    if (parts.length > 2) {
-      return parts[0] + '.' + parts.slice(1).join('');
-    }
-    
-    return numericValue;
-  };
-
-  const toggleFriendSelection = (friendId: number) => {
-    if (selectedFriends.includes(friendId)) {
-      setSelectedFriends(selectedFriends.filter(id => id !== friendId));
-    } else {
-      setSelectedFriends([...selectedFriends, friendId]);
-    }
-  };
-
-  const selectGroup = (groupId: number) => {
-    setSelectedGroup(groupId);
-    // When a group is selected, automatically select all its members
-    const group = mockGroups.find(g => g.id === groupId);
-    if (group) {
-      setSelectedFriends(group.members.map(member => member.id));
-    }
-    setShowGroupSelector(false);
-  };
-
-  const getSelectedGroupName = () => {
-    const group = mockGroups.find(g => g.id === selectedGroup);
-    return group ? group.name : 'Select a group';
-  };
-
-  const getSelectedFriendsText = () => {
-    if (selectedFriends.length === 0) {
-      return 'Select friends';
-    } else if (selectedFriends.length === 1) {
-      const friend = mockFriends.find(f => f.id === selectedFriends[0]);
-      return friend ? friend.name : '';
-    } else {
-      return `${selectedFriends.length} friends selected`;
-    }
-  };
-
-  return (
-    <KeyboardAvoidingView 
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
-    >
-      <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
-          <ArrowLeft size={24} color="#333" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Add Expense</Text>
-        <TouchableOpacity 
-          style={styles.saveButton}
-          onPress={handleSave}
-        >
-          <Text style={styles.saveButtonText}>Save</Text>
-        </TouchableOpacity>
-      </View>
-
-      <ScrollView style={styles.content}>
-        <View style={styles.formSection}>
-          <Text style={styles.sectionTitle}>Basic Details</Text>
-          
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Description</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="What was this expense for?"
-              value={description}
-              onChangeText={setDescription}
-            />
-          </View>
-          
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Amount</Text>
-            <View style={styles.amountInputContainer}>
-              <Text style={styles.currencySymbol}>$</Text>
-              <TextInput
-                style={styles.amountInput}
-                placeholder="0.00"
-                keyboardType="decimal-pad"
-                value={amount}
-                onChangeText={(value) => setAmount(formatCurrency(value))}
-              />
-            </View>
-          </View>
-          
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Date</Text>
-            <TouchableOpacity 
-              style={styles.selectorButton}
-              onPress={() => setShowDatePicker(true)}
-            >
-              <Calendar size={20} color="#666" />
-              <Text style={styles.selectorButtonText}>{date}</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        <View style={styles.formSection}>
-          <Text style={styles.sectionTitle}>Split With</Text>
-          
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Group</Text>
-            <TouchableOpacity 
-              style={styles.selectorButton}
-              onPress={() => setShowGroupSelector(true)}
-            >
-              <Users size={20} color="#666" />
-              <Text style={styles.selectorButtonText}>{getSelectedGroupName()}</Text>
-            </TouchableOpacity>
-          </View>
-          
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Friends</Text>
-            <TouchableOpacity 
-              style={styles.selectorButton}
-              onPress={() => setShowFriendSelector(true)}
-            >
-              <Users size={20} color="#666" />
-              <Text style={styles.selectorButtonText}>{getSelectedFriendsText()}</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        <View style={styles.formSection}>
-          <Text style={styles.sectionTitle}>Split Options</Text>
-          
-          <View style={styles.splitTypeContainer}>
-            <TouchableOpacity 
-              style={[styles.splitTypeButton, splitType === 'equal' && styles.activeSplitTypeButton]}
-              onPress={() => setSplitType('equal')}
-            >
-              <DollarSign size={20} color={splitType === 'equal' ? '#fff' : '#666'} />
-              <Text style={[styles.splitTypeText, splitType === 'equal' && styles.activeSplitTypeText]}>Equal</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={[styles.splitTypeButton, splitType === 'percentage' && styles.activeSplitTypeButton]}
-              onPress={() => setSplitType('percentage')}
-            >
-              <Percent size={20} color={splitType === 'percentage' ? '#fff' : '#666'} />
-              <Text style={[styles.splitTypeText, splitType === 'percentage' && styles.activeSplitTypeText]}>Percentage</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={[styles.splitTypeButton, splitType === 'amount' && styles.activeSplitTypeButton]}
-              onPress={() => setSplitType('amount')}
-            >
-              <DollarSign size={20} color={splitType === 'amount' ? '#fff' : '#666'} />
-              <Text style={[styles.splitTypeText, splitType === 'amount' && styles.activeSplitTypeText]}>Amount</Text>
-            </TouchableOpacity>
-          </View>
-          
-          {splitType === 'equal' && (
-            <Text style={styles.splitDescription}>
-              The total amount will be split equally among all selected people.
-            </Text>
-          )}
-          
-          {splitType === 'percentage' && (
-            <Text style={styles.splitDescription}>
-              You can specify what percentage of the total each person should pay.
-            </Text>
-          )}
-          
-          {splitType === 'amount' && (
-            <Text style={styles.splitDescription}>
-              You can specify the exact amount each person should pay.
-            </Text>
-          )}
-        </View>
-
-        <View style={styles.formSection}>
-          <Text style={styles.sectionTitle}>Additional Options</Text>
-          
-          <TouchableOpacity style={styles.additionalOption}>
-            <Receipt size={20} color="#666" />
-            <Text style={styles.additionalOptionText}>Add Receipt</Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-
-      {showGroupSelector && (
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Select a Group</Text>
-              <TouchableOpacity 
-                onPress={() => setShowGroupSelector(false)}
-              >
-                <X size={24} color="#333" />
-              </TouchableOpacity>
-            </View>
-            
-            <ScrollView style={styles.modalList}>
-              {mockGroups.map(group => (
-                <TouchableOpacity 
-                  key={group.id}
-                  style={styles.modalItem}
-                  onPress={() => selectGroup(group.id)}
-                >
-                  <Text style={styles.modalItemText}>{group.name}</Text>
-                  {selectedGroup === group.id && (
-                    <View style={styles.selectedIndicator} />
-                  )}
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-        </View>
-      )}
-
-      {showFriendSelector && (
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Select Friends</Text>
-              <TouchableOpacity 
-                onPress={() => setShowFriendSelector(false)}
-              >
-                <X size={24} color="#333" />
-              </TouchableOpacity>
-            </View>
-            
-            <ScrollView style={styles.modalList}>
-              {mockFriends.map(friend => (
-                <TouchableOpacity 
-                  key={friend.id}
-                  style={styles.modalItem}
-                  onPress={() => toggleFriendSelection(friend.id)}
-                >
-                  <Text style={styles.modalItemText}>{friend.name}</Text>
-                  {selectedFriends.includes(friend.id) && (
-                    <View style={styles.selectedIndicator} />
-                  )}
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-            
-            <TouchableOpacity 
-              style={styles.modalButton}
-              onPress={() => setShowFriendSelector(false)}
-            >
-              <Text style={styles.modalButtonText}>Done</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      )}
-    </KeyboardAvoidingView>
-  );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F7F7F7',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#fff',
-    paddingTop: 50,
-    paddingBottom: 16,
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E1E1E1',
-  },
-  backButton: {
-    padding: 4,
-  },
-  headerTitle: {
-    fontFamily: 'Inter-SemiBold',
-    fontSize: 18,
-    color: '#333',
-  },
-  saveButton: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 16,
-    backgroundColor: '#00A86B',
-  },
-  saveButtonText: {
-    fontFamily: 'Inter-Medium',
-    fontSize: 14,
-    color: '#fff',
-  },
-  content: {
-    flex: 1,
-  },
-  formSection: {
-    backgroundColor: '#fff',
-    marginBottom: 16,
-    padding: 16,
-  },
-  sectionTitle: {
-    fontFamily: 'Inter-SemiBold',
-    fontSize: 16,
-    color: '#333',
-    marginBottom: 16,
-  },
-  inputContainer: {
-    marginBottom: 16,
-  },
-  label: {
-    fontFamily: 'Inter-Medium',
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 8,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#E1E1E1',
-    borderRadius: 8,
-    padding: 12,
-    fontFamily: 'Inter-Regular',
-    fontSize: 16,
-  },
-  amountInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E1E1E1',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-  },
-  currencySymbol: {
-    fontFamily: 'Inter-Medium',
-    fontSize: 16,
-    color: '#333',
-    marginRight: 4,
-  },
-  amountInput: {
-    flex: 1,
-    padding: 12,
-    fontFamily: 'Inter-Regular',
-    fontSize: 16,
-  },
-  selectorButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E1E1E1',
-    borderRadius: 8,
-    padding: 12,
-  },
-  selectorButtonText: {
-    fontFamily: 'Inter-Regular',
-    fontSize: 16,
-    color: '#333',
-    marginLeft: 8,
-    flex: 1,
-  },
-  splitTypeContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-  },
-  splitTypeButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#F0F0F0',
-    borderRadius: 8,
-    padding: 12,
-    flex: 0.32,
-  },
-  activeSplitTypeButton: {
-    backgroundColor: '#00A86B',
-  },
-  splitTypeText: {
-    fontFamily: 'Inter-Medium',
-    fontSize: 14,
-    color: '#666',
-    marginLeft: 4,
-  },
-  activeSplitTypeText: {
-    color: '#fff',
-  },
-  splitDescription: {
-    fontFamily: 'Inter-Regular',
-    fontSize: 14,
-    color: '#666',
-    backgroundColor: '#F0F9F6',
-    padding: 12,
-    borderRadius: 8,
-  },
-  additionalOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    borderWidth: 1,
-    borderColor: '#E1E1E1',
-    borderRadius: 8,
-    backgroundColor: '#F0F0F0',
-  },
-  additionalOptionText: {
-    fontFamily: 'Inter-Medium',
-    fontSize: 14,
-    color: '#666',
-    marginLeft: 8,
-  },
-  modalOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 1000,
-  },
-  modalContent: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    width: '80%',
-    maxHeight: '70%',
-    padding: 16,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  modalTitle: {
-    fontFamily: 'Inter-SemiBold',
-    fontSize: 18,
-    color: '#333',
-  },
-  modalList: {
-    maxHeight: 300,
-  },
-  modalItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
-  },
-  modalItemText: {
-    fontFamily: 'Inter-Regular',
-    fontSize: 16,
-    color: '#333',
-  },
-  selectedIndicator: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: '#00A86B',
-  },
-  modalButton: {
-    backgroundColor: '#00A86B',
-    borderRadius: 8,
-    padding: 12,
-    alignItems: 'center',
-    marginTop: 16,
-  },
-  modalButtonText: {
-    fontFamily: 'Inter-Medium',
-    fontSize: 16,
-    color: '#fff',
-  },
-});

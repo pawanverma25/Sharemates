@@ -7,7 +7,7 @@ import { ExpenseType } from "@/definitions/expense";
 import { dashboardService } from "@/services/dashboardService";
 import { expensesService } from "@/services/expensesService";
 import { formatCurrency, formatDate } from "@/util/commonFunctions";
-import { RelativePathString, router } from "expo-router";
+import { RelativePathString, router, useFocusEffect } from "expo-router";
 import {
     ArrowRight,
     DollarSign,
@@ -15,7 +15,7 @@ import {
     TrendingDown,
     TrendingUp,
 } from "lucide-react-native";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
     RefreshControl,
     ScrollView,
@@ -79,9 +79,11 @@ export default function DashboardScreen() {
             });
     };
 
-    useEffect(() => {
-        onLoadCallAPIs();
-    }, []);
+    useFocusEffect(
+        useCallback(() => {
+            onLoadCallAPIs();
+        }, [])
+    );
 
     useEffect(() => {
         calculateBalances();
@@ -381,7 +383,7 @@ export default function DashboardScreen() {
                                 {expense.description}
                             </Text>
                             <Text style={styles.expenseDate}>
-                                {formatDate(expense.date)} •{" "}
+                                {formatDate(expense.createdDate)} •{" "}
                                 {expense.paidBy.id == user?.id
                                     ? "You"
                                     : expense.paidBy.name}

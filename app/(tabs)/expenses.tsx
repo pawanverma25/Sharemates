@@ -5,7 +5,7 @@ import { useTheme } from "@/context/ThemeContext";
 import { ExpenseType } from "@/definitions/expense";
 import { expensesService } from "@/services/expensesService";
 import { formatCurrency, formatDate } from "@/util/commonFunctions";
-import { RelativePathString, router } from "expo-router";
+import { RelativePathString, router, useFocusEffect } from "expo-router";
 import { ArrowRight, Filter, Plus, Search } from "lucide-react-native";
 import { useEffect, useState } from "react";
 import {
@@ -48,9 +48,9 @@ export default function ExpensesScreen() {
             });
     };
 
-    useEffect(() => {
+    useFocusEffect(() => {
         onLoadCallAPIs();
-    }, []);
+    });
 
     const styles = StyleSheet.create({
         container: {
@@ -330,7 +330,7 @@ export default function ExpensesScreen() {
                             <View style={styles.expenseDetails}>
                                 <View style={styles.expenseInfo}>
                                     <Text style={styles.expenseDate}>
-                                        {formatDate(expense.date)}
+                                        {formatDate(expense.createdDate)}
                                     </Text>
                                     <Text style={styles.expenseDot}>•</Text>
                                     <Text style={styles.expenseGroup}>

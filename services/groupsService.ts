@@ -12,4 +12,15 @@ export const groupService = {
             );
         }
     },
+    async getMembers(groupId: number) {
+        try {
+            const response = await apiClient.get(`/getGroupMembers/${groupId}`);
+            return response.data;
+        } catch (error: any) {
+            throw (
+                error.response?.data ||
+                "Couldn't fetch group members: " + error.message
+            );
+        }
+    }
 };

@@ -16,17 +16,18 @@ export type ExpenseCategoryType =
 
 export type ExpenseType = {
     id: number;
-    expenseUid: string;
     groupId: number;
     groupName: string;
     createdBy: UserType;
     description: string;
     amount: number;
-    date: string;
+    createdDate: string;
+    modifiedDate: string;
     splitType: SplitType;
     splits?: [];
     amountOwed: number;
     paidBy: UserType;
+    expenseCategory: ExpenseCategoryType;
 };
 
 export type ExpenseSplitType = {
@@ -36,3 +37,20 @@ export type ExpenseSplitType = {
     amountOwed: number;
     paid: string;
 };
+
+
+export type ExpenseRequestType = {
+    description: string;
+    createdDate: string;
+    paidBy: number;
+    groupId: number;
+    createdBy: number;
+    amount: number;
+    splitType: string;
+    participants: participantType[];
+};
+
+export type participantType = {
+    id: number;
+    amount: number;
+}

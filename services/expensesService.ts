@@ -1,3 +1,4 @@
+import { ExpenseRequestType } from "@/definitions/expense";
 import apiClient from "./apiClient";
 
 export const expensesService = {
@@ -22,6 +23,20 @@ export const expensesService = {
                     pageable: pageable,
                 },
             });
+            return response.data;
+        } catch (error: any) {
+            throw (
+                error.response?.data ||
+                "Couldn't fetch balances: " + error.message
+            );
+        }
+    },
+    async addExpenses(expenseRequest : ExpenseRequestType) {
+        try {
+            const response = await apiClient.post(
+                `/addExpenses`,
+                expenseRequest
+            );
             return response.data;
         } catch (error: any) {
             throw (
