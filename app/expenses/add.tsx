@@ -40,7 +40,7 @@ export default function AddExpenseScreen() {
     const [groupList, setGroupList] = useState<GroupType[]>([]);
     const [friendList, setFriendList] = useState<UserType[]>(user ? [user] : []);
     const [description, setDescription] = useState("");
-    const [amount, setAmount] = useState<string>("0.00");
+    const [amount, setAmount] = useState<string>("");
     const [date, setDate] = useState<Date>(new Date());
     const [selectedGroup, setSelectedGroup] = useState<number | null>(null);
     const [selectedFriends, setSelectedFriends] = useState<number[]>([]);
@@ -60,6 +60,10 @@ export default function AddExpenseScreen() {
 
         if (selectedGroup === null && selectedFriends.length === 0) {
             showAlert("Error", "Please select a group or at least one friend");
+            return;
+        }
+        if (paidBy === null) {
+            showAlert("Error", "Please select who paid for the expense");
             return;
         }
         if(splitType === "EXACT" || splitType === "PERCENTAGE") {
@@ -93,7 +97,7 @@ export default function AddExpenseScreen() {
             }));
         } else if (splitType === "EXACT") {
             const totalSplitAmount = Object.values(friendSplits).reduce((sum, amt) => sum + amt, 0);
-            if (Math.abs(totalSplitAmount - totalAmount) > 0.01) {
+            if (Math.abs(totalSplitAmount - totalAmount) !== 0) {
                 showAlert("Error", "Total split amounts must equal the expense amount");
                 return;
             }
@@ -102,17 +106,19 @@ export default function AddExpenseScreen() {
                 amount: friendSplits[friendId],
             }));
         }
+        if(participants.filter((p) => p.id === paidBy?.id).length === 0) participants.push({ id: paidBy?.id ?? -1, amount: 0 });
 
         const expenseSaved = await expensesService.addExpenses({
             description: description,
             createdDate: date.toISOString().split("T")[0],
-            paidBy: user?.id,
+            paidBy: paidBy?.id,
             groupId: selectedGroup,
             createdBy: user?.id,
             amount: totalAmount,
             splitType: splitType,
             participants: participants,
         } as ExpenseRequestType);
+        debugger
         if (expenseSaved)
             showAlert("Success", "Expense added successfully", () =>
                 router.back()
@@ -214,7 +220,11 @@ export default function AddExpenseScreen() {
     }, []);
 
     const handleSplitChange = (friendId: number, value: string) => {
-        const numValue = parseFloat(value) || 0;
+        const numValue = parseFloat(value);
+        if(splitType == "PERCENTAGE" && (isNaN(numValue) || numValue < 0 || numValue > 100)) {
+            showAlert("Error", "Percentage must be between 0 and 100"); 
+            return;
+        }
         setFriendSplits({
             ...friendSplits,
             [friendId]: numValue,
@@ -682,17 +692,43 @@ export default function AddExpenseScreen() {
                                 {selectedFriends.map((friendId) => {
                                     const friend = friendList.find((f) => f.id === friendId);
                                     return (
-                                        <View key={friendId} style={styles.splitInputRow}>
-                                            <Text style={styles.splitInputLabel}>{friend?.name}</Text>
-                                            <View style={styles.splitAmountInputContainer}>
+                                        <View
+                                            key={friendId}
+                                            style={styles.splitInputRow}
+                                        >
+                                            <Text
+                                                style={styles.splitInputLabel}
+                                            >
+                                                {friend?.name}
+                                            </Text>
+                                            <View
+                                                style={
+                                                    styles.splitAmountInputContainer
+                                                }
+                                            >
                                                 <TextInput
                                                     style={styles.amountInput}
-                                                    placeholder="0"
-                                                    keyboardType="numeric"
-                                                    value={friendSplits[friendId]?.toString() || ""}
-                                                    onChangeText={(value) => handleSplitChange(friendId, value)}
+                                                    placeholder="0.00"
+                                                    keyboardType="decimal-pad"
+                                                    value={
+                                                        friendSplits[
+                                                            friendId
+                                                        ]?.toString() || ""
+                                                    }
+                                                    onChangeText={(value) =>
+                                                        handleSplitChange(
+                                                            friendId,
+                                                            value
+                                                        )
+                                                    }
                                                 />
-                                                <Text style={styles.percentageSymbol}>%</Text>
+                                                <Text
+                                                    style={
+                                                        styles.percentageSymbol
+                                                    }
+                                                >
+                                                    %
+                                                </Text>
                                             </View>
                                         </View>
                                     );
@@ -710,15 +746,8 @@ export default function AddExpenseScreen() {
                                 {selectedFriends.map((friendId) => {
                                     const friend = friendList.find((f) => f.id === friendId);
                                     return (
-                                        <View
-                                            key={friendId}
-                                            style={styles.splitInputRow}
-                                        >
-                                            <Text
-                                                style={styles.splitInputLabel}
-                                            >
-                                                {friend?.name}
-                                            </Text>
+                                        <View key={friendId} style={styles.splitInputRow}>
+                                            <Text style={styles.splitInputLabel}> {friend?.name}</Text>
                                             <View
                                                 style={
                                                     styles.splitAmountInputContainer

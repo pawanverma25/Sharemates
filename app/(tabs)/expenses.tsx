@@ -7,7 +7,7 @@ import { expensesService } from "@/services/expensesService";
 import { formatCurrency, formatDate } from "@/util/commonFunctions";
 import { RelativePathString, router, useFocusEffect } from "expo-router";
 import { ArrowRight, Filter, Plus, Search } from "lucide-react-native";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
     RefreshControl,
     ScrollView,
@@ -48,9 +48,11 @@ export default function ExpensesScreen() {
             });
     };
 
-    useFocusEffect(() => {
-        onLoadCallAPIs();
-    });
+    useFocusEffect(
+        useCallback(() => {
+            onLoadCallAPIs();
+        }, [])
+    );
 
     const styles = StyleSheet.create({
         container: {

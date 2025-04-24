@@ -245,10 +245,16 @@ export default function DashboardScreen() {
             flexDirection: "row",
             alignItems: "center",
         },
-        expenseAmountText: {
+        expensePositiveAmountText: {
             fontFamily: "Inter-SemiBold",
             fontSize: 16,
-            color: colors.text,
+            color: colors.primaryLight,
+            marginRight: 8,
+        },
+        expenseNegativeAmountText: {
+            fontFamily: "Inter-SemiBold",
+            fontSize: 16,
+            color: colors.error,
             marginRight: 8,
         },
         balanceRow: {
@@ -366,9 +372,9 @@ export default function DashboardScreen() {
                     </TouchableOpacity>
                 </View>
 
-                {expenses.map((expense) => (
+                {expenses.map((expense, index) => (
                     <TouchableOpacity
-                        key={expense.id}
+                        key={index}
                         style={styles.expenseItem}
                         onPress={() =>
                             router.push({
@@ -390,8 +396,14 @@ export default function DashboardScreen() {
                             </Text>
                         </View>
                         <View style={styles.expenseAmount}>
-                            <Text style={styles.expenseAmountText}>
-                                {formatCurrency(expense.amountOwed)}
+                            <Text
+                                style={
+                                    expense.amountOwed < 0
+                                        ? styles.expensePositiveAmountText
+                                        : styles.expenseNegativeAmountText
+                                }
+                            >
+                                {formatCurrency(Math.abs(expense.amountOwed))}
                             </Text>
                             <ArrowRight size={16} color="#888" />
                         </View>

@@ -46,14 +46,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     const signIn = async (email: string, password: string) => {
         setIsLoading(true);
         setError(null);
-        debugger;
         try {
             const response = await apiClient.post("/login", {
                 email,
                 password,
             });
-            debugger;
-
             const authResponse: AuthResponse = response.data;
 
             ToastAndroid.showWithGravity(authResponse.message, 1000, 10);

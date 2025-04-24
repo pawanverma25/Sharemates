@@ -296,8 +296,9 @@ export default function ExpenseDetailsScreen() {
 
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Split Details</Text>
-                    {splits?.map((split: ExpenseSplitType, index: number) => (
-                        <View key={index} style={styles.splitItem}>
+                    {splits?.map((split: ExpenseSplitType, index: number) => {
+                        if(split.amountOwed == 0) return null;
+                        return <View key={index} style={styles.splitItem}>
                             <View>
                                 <Text style={styles.splitName}>
                                     {split.user.name}
@@ -317,7 +318,7 @@ export default function ExpenseDetailsScreen() {
                                 {formatCurrency(split?.amountOwed)}
                             </Text>
                         </View>
-                    ))}
+                    })}
                 </View>
 
                 {/* {expense.receipt && (
