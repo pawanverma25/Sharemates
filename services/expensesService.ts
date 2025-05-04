@@ -23,7 +23,6 @@ export const expensesService = {
                     pageable: pageable,
                 },
             });
-            debugger
             return response.data;
         } catch (error: any) {
             throw (
@@ -38,7 +37,6 @@ export const expensesService = {
                 `/addExpenses`,
                 expenseRequest
             );
-            debugger
             return response.data;
         } catch (error: any) {
             throw (

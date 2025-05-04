@@ -12,4 +12,5 @@ export type AuthResponse = {
     user: UserType;
     authorization: string;
     expiresIn: number;
+    emailVerified: "Y" | "N";
 };

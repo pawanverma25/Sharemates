@@ -9,7 +9,7 @@ type AuthContextType = {
     user: UserType | null;
     isLoading: boolean;
     signIn: (email: string, password: string) => Promise<void>;
-    signUp: (name: string, email: string, password: string) => Promise<void>;
+    signUp: (username:string, name: string, email: string, password: string) => Promise<void>;
     signOut: () => Promise<void>;
     error: string | null;
 };
@@ -52,6 +52,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
                 password,
             });
             const authResponse: AuthResponse = response.data;
+            authResponse.user.emailVerified = authResponse.emailVerified;
 
             ToastAndroid.showWithGravity(authResponse.message, 1000, 10);
 
@@ -79,7 +80,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             ]);
 
             setUser(authResponse.user);
-            router.replace("/dashboard" as RelativePathString);
+            if (authResponse.user.emailVerified === "Y")
+                router.replace("/dashboard" as RelativePathString);
+            else router.replace("/verify-email" as RelativePathString);
         } catch (e) {
             setError("Invalid email or password");
             console.error("Login failed", e);
@@ -88,32 +91,49 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         }
     };
 
-    const signUp = async (name: string, email: string, password: string) => {
+    const signUp = async (username: string, name: string, email: string, password: string) => {
         setIsLoading(true);
         setError(null);
 
         try {
             const response = await apiClient.post("/register", {
+                username,
                 name,
                 email,
                 password,
             });
-            const authResponse: AuthResponse = JSON.parse(response.data);
+            const authResponse: AuthResponse = response.data;
+            authResponse.user.emailVerified = authResponse.emailVerified;
 
             ToastAndroid.showWithGravity(authResponse.message, 1000, 10);
 
             // Store user data and token
-            await SecureStore.setItemAsync(
-                "user",
-                JSON.stringify(authResponse.user)
-            );
-            await SecureStore.setItemAsync("token", authResponse.authorization);
+            ToastAndroid.showWithGravity(authResponse.message, 1000, 10);
 
-            setUser(authResponse.user);
+            await Promise.all([
+                SecureStore.setItemAsync(
+                    "user",
+                    JSON.stringify(authResponse.user)
+                ),
+                SecureStore.setItemAsync("token", authResponse.authorization),
+                SecureStore.setItemAsync(
+                    "tokenExpiry",
+                    authResponse.expiresIn + ""
+                ),
+                SecureStore.setItemAsync(
+                    "userCredentials",
+                    JSON.stringify({
+                        email,
+                        password,
+                    })
+                ),
+                SecureStore.setItemAsync(
+                    "lastLogin",
+                    JSON.stringify(new Date().getTime())
+                ),
+            ]);
 
-            await new Promise((resolve) => setTimeout(resolve, 1000));
-
-            router.replace("/" as RelativePathString);
+            router.replace("/verify-email" as RelativePathString);
         } catch (e) {
             setError("Registration failed. Please try again.");
             console.error("Registration failed", e);

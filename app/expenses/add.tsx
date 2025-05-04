@@ -118,7 +118,6 @@ export default function AddExpenseScreen() {
             splitType: splitType,
             participants: participants,
         } as ExpenseRequestType);
-        debugger
         if (expenseSaved)
             showAlert("Success", "Expense added successfully", () =>
                 router.back()

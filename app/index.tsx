@@ -20,11 +20,10 @@ export default function Index() {
                     storageService.getItemAsync("lastLogin"),
                 ]);
             if (user && tokenExpiry && userCredentials && lastLogin) {
-                // if (Number(tokenExpiry) + Number(lastLogin) < Date.now()) {
-                const { email, password } = JSON.parse(userCredentials);
-                await signIn(email, password);
-                // }
-                router.replace("/dashboard" as RelativePathString);
+                if (Number(tokenExpiry) + Number(lastLogin) < Date.now()) {
+                    const { email, password } = JSON.parse(userCredentials);
+                    signIn(email, password);
+                }
             } else {
                 router.replace("/login" as RelativePathString);
             }
