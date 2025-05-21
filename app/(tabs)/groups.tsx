@@ -8,7 +8,7 @@ import { friendsService } from "@/services/friendsService";
 import { groupService } from "@/services/groupsService";
 import { formatCurrency } from "@/util/commonFunctions";
 import { router } from "expo-router";
-import { Plus, Search, User, Users } from "lucide-react-native";
+import { Plus, Search, User, Users, UserPlus } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
 import {
     RefreshControl,
@@ -43,7 +43,8 @@ export default function GroupsScreen() {
     const [searchQuery, setSearchQuery] = useState("");
     const [groupList, setGroupList] = useState<GroupType[]>([]);
     const [friendList, setFriendList] = useState<UserType[]>([]);
-    const [activeTab, setActiveTab] = useState("groups"); // 'groups' or 'friends'
+    const [friendRequestList, setFriendRequestList] = useState<UserType[]>([]);
+    const [activeTab, setActiveTab] = useState("groups"); // 'groups' or 'friends' or 'requests'
 
     const filteredGroups = groupList.filter((group) =>
         group.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -68,6 +69,14 @@ export default function GroupsScreen() {
                 .getFriends(user?.id ?? -1)
                 .then((res) => {
                     setFriendList(res);
+                })
+                .catch((error) => {
+                    showAlert("Error", error);
+                }),
+            friendsService
+                .getFriendRequestList(user?.id ?? -1)
+                .then((res) => {
+                    setFriendRequestList(res);
                 })
                 .catch((error) => {
                     showAlert("Error", error);
@@ -326,6 +335,30 @@ export default function GroupsScreen() {
                         Friends
                     </Text>
                 </TouchableOpacity>
+                <TouchableOpacity
+                    style={[
+                        styles.tab,
+                        activeTab === "requests" && styles.activeTab,
+                    ]}
+                    onPress={() => setActiveTab("requests")}
+                >
+                    <UserPlus
+                        size={18}
+                        color={
+                            activeTab === "requests"
+                                ? colors.primary
+                                : colors.secondaryText
+                        }
+                    />
+                    <Text
+                        style={[
+                            styles.tabText,
+                            activeTab === "requests" && styles.activeTabText,
+                        ]}
+                    >
+                        Requests
+                    </Text>
+                </TouchableOpacity>
             </View>
 
             <ScrollView
@@ -387,7 +420,7 @@ export default function GroupsScreen() {
                             </View>
                         )}
                     </>
-                ) : (
+                ) : activeTab === "friends" ? (
                     <>
                         <TouchableOpacity
                             style={styles.addButton}
@@ -446,6 +479,40 @@ export default function GroupsScreen() {
                             <View style={styles.emptyState}>
                                 <Text style={styles.emptyStateText}>
                                     No friends found
+                                </Text>
+                            </View>
+                        )}
+                    </>
+                ) : (
+                    <>
+                        {friendRequestList.length > 0 ? (
+                            friendRequestList.map((friend) => (
+                                <TouchableOpacity
+                                    key={friend.id}
+                                style={styles.friendItem}
+                                onPress={() =>
+                                    router.push(`/groups/friends/${friend.id}`)
+                                }
+                            >
+                                <View style={styles.friendIcon}>
+                                    <User size={24} color={colors.text} />
+                                </View>
+                                <View style={styles.friendDetails}>
+                                    <Text style={styles.friendName}>
+                                        {friend.name}
+                                    </Text>
+                                        {
+                                            <Text style={styles.settledBalance}>
+                                                {friend.username}
+                                            </Text>
+                                        }
+                                    </View>
+                                </TouchableOpacity>
+                            ))
+                        ) : (
+                            <View style={styles.emptyState}>
+                                <Text style={styles.emptyStateText}>
+                                    No friend requests
                                 </Text>
                             </View>
                         )}

@@ -129,7 +129,7 @@ export default function VerifyEmailScreen() {
                         ToastAndroid.SHORT,
                         ToastAndroid.BOTTOM
                     );
-                    router.replace("/" as RelativePathString);
+                    router.replace("/dashboard" as RelativePathString);
                 } else if(response.status === 400) {
                     setError(response.data);
                     shakeInputs();

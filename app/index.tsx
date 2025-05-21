@@ -12,6 +12,7 @@ export default function Index() {
 
     useEffect(() => {
         const checkAuth = async () => {
+            setLoading(true);
             const [user, tokenExpiry, userCredentials, lastLogin] =
                 await Promise.all([
                     storageService.getItemAsync("user"),
@@ -33,7 +34,6 @@ export default function Index() {
         checkAuth();
     }, []);
 
-    if (loading) {
         return (
             <View
                 style={{
@@ -41,13 +41,12 @@ export default function Index() {
                     justifyContent: "center",
                     alignItems: "center",
                     backgroundColor: colors.background,
+                    gap: 10,
                 }}
             >
                 <ActivityIndicator size="large" color={colors.primary} />
                 <Text style={{ color: colors.text }}>Loading...</Text>
+                <Text style={{ color: colors.text, marginTop:10 }}>This might take up to a minute...</Text>
             </View>
         );
-    }
-
-    return null;
 }

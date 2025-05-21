@@ -1,10 +1,11 @@
 export type UserType = {
     name: string;
     id: number;
-    uid: string;
+    username: string;
     email: string;
     emailVerified: "Y" | "N";
     balance?: number;
+    status?: string;
 };
 
 export type AuthResponse = {

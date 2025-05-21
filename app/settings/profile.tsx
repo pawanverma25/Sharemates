@@ -1,18 +1,12 @@
-import Alert from "@/components/ui/Alert";
 import { useAlert } from "@/context/AlertContext";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
+import { userService } from "@/services/userService";
+import { ValidationUtil } from "@/util/validations";
 import * as ImagePicker from "expo-image-picker";
 import { RelativePathString, router } from "expo-router";
-import {
-    ArrowLeft,
-    Camera,
-    Mail,
-    MapPin,
-    Phone,
-    User,
-} from "lucide-react-native";
-import { useImperativeHandle, useState, forwardRef, useEffect } from "react";
+import { Camera, Mail, User } from "lucide-react-native";
+import { forwardRef, useImperativeHandle, useState } from "react";
 import {
     Image,
     KeyboardAvoidingView,
@@ -37,9 +31,59 @@ const ProfileEditScreen = forwardRef((props, ref) => {
 
     const [name, setName] = useState(user?.name);
     const [email, setEmail] = useState(user?.email);
+    const [username, setUsername] = useState(user?.username);
+    const [usernameFieldError, setUsernameFieldError] = useState<string | null>(
+        null
+    );
+    const [isUsernameAvailable, setIsUsernameAvailable] = useState(true);
+    const [isCheckingUsername, setIsCheckingUsername] = useState(false);
+    const [usernameApiCallTimeout, setUsernameApiCallTimeout] =
+        useState<NodeJS.Timeout | null>(null);
     const [avatar, setAvatar] = useState(
         "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&fit=crop"
     );
+
+    const validateUsername = (text: string) => {
+        try {
+            ValidationUtil.validateUsername(text);
+        } catch (error: any) {
+            setUsernameFieldError(error.message);
+            return false;
+        }
+        setUsernameFieldError(null);
+        return true;
+    };
+
+    const checkUsernameExists = async (username: string) => {
+        try {
+            const response = await userService.checkUsernameExists(username);
+            return response.exists;
+        } catch (error: any) {
+            setUsernameFieldError(
+                "Couldn't check username availability. Please try again."
+            );
+            return false;
+        }
+    };
+
+    const handleUsernameChange = (text: string) => {
+        setUsername(text);
+        if (validateUsername(text)) {
+            if (usernameApiCallTimeout) {
+                clearTimeout(usernameApiCallTimeout);
+            }
+            const timeout = setTimeout(async () => {
+                setIsCheckingUsername(true);
+                const exists = await checkUsernameExists(text);
+                if (exists) {
+                    setIsCheckingUsername(false);
+                    setIsUsernameAvailable(false);
+                    setUsernameFieldError("Username is already taken");
+                }
+            }, 1000);
+            setUsernameApiCallTimeout(timeout);
+        }
+    };
 
     const pickImage = async () => {
         const result = await ImagePicker.launchImageLibraryAsync({
@@ -59,13 +103,20 @@ const ProfileEditScreen = forwardRef((props, ref) => {
     };
 
     const handleSave = () => {
+        if (usernameFieldError) {
+            showAlert("Error", "Please choose a valid username");
+            return;
+        }
+
         showAlert(
             "Save Changes",
             "Are you sure you want to save these changes to your profile?",
             () => {
                 router.back();
             },
-            () => {}
+            () => {
+                hideAlert();
+            }
         );
     };
 
@@ -218,6 +269,17 @@ const ProfileEditScreen = forwardRef((props, ref) => {
             fontSize: 12,
             color: colors.primary,
         },
+        usernameStatus: {
+            fontFamily: "Inter-Regular",
+            fontSize: 12,
+            marginTop: 4,
+        },
+        usernameAvailable: {
+            color: colors.primary,
+        },
+        usernameUnavailable: {
+            color: colors.error,
+        },
     });
 
     return (
@@ -265,6 +327,51 @@ const ProfileEditScreen = forwardRef((props, ref) => {
                     </View>
 
                     <View style={styles.inputContainer}>
+                        <Text style={styles.label}>Username</Text>
+                        <View style={styles.input}>
+                            <User
+                                size={20}
+                                color={colors.secondaryText}
+                                style={styles.inputIcon}
+                            />
+                            <TextInput
+                                style={styles.textInput}
+                                value={username}
+                                onBlur={() => {
+                                    if (!username) {
+                                        setUsername(user?.username);
+                                    }
+                                }}
+                                onChangeText={handleUsernameChange}
+                                placeholder="Enter your username"
+                                placeholderTextColor={colors.secondaryText}
+                                autoCapitalize="none"
+                            />
+                        </View>
+                        {username &&
+                            username !== user?.username &&
+                            usernameFieldError && (
+                                <Text
+                                    style={[
+                                        styles.usernameStatus,
+                                        isUsernameAvailable &&
+                                        !usernameFieldError
+                                            ? styles.usernameAvailable
+                                            : styles.usernameUnavailable,
+                                    ]}
+                                >
+                                    {usernameFieldError
+                                        ? usernameFieldError
+                                        : isCheckingUsername
+                                        ? "Checking availability..."
+                                        : isUsernameAvailable
+                                        ? "Username is available"
+                                        : "Username is not available"}
+                                </Text>
+                            )}
+                    </View>
+
+                    <View style={styles.inputContainer}>
                         <Text style={styles.label}>Email</Text>
                         <View style={styles.input}>
                             <Mail
@@ -273,10 +380,13 @@ const ProfileEditScreen = forwardRef((props, ref) => {
                                 style={styles.inputIcon}
                             />
                             <TextInput
-                                style={styles.textInput}
+                                style={[
+                                    styles.textInput,
+                                    { color: colors.secondaryText },
+                                ]}
                                 value={email}
                                 onChangeText={setEmail}
-                                placeholder="Enter your email"
+                                editable={false}
                                 placeholderTextColor={colors.secondaryText}
                                 keyboardType="email-address"
                                 autoCapitalize="none"

@@ -1,3 +1,4 @@
+import { FriendType } from "@/definitions/friend";
 import apiClient from "./apiClient";
 
 export const friendsService = {
@@ -8,7 +9,44 @@ export const friendsService = {
         } catch (error: any) {
             throw (
                 error.response?.data ||
-                "Couldn't fetch friends List: " + error.message
+                "Couldn't fetch friends list: " + error.message
+            );
+        }
+    },
+    async searchFriends(searchQuery: string, userId: number) {
+        try {
+            const response = await apiClient.get(
+                `/searchFriends/${userId}/${searchQuery}`
+            );
+            return response.data;
+        } catch (error: any) {
+            throw (
+                error.response?.data ||
+                "Couldn't search friends: " + error.message
+            );
+        }
+    },
+    async addFriends(friendRequest: FriendType) {
+        try {
+            const response = await apiClient.post(`/addFriend/`, friendRequest);
+            return response.data;
+        } catch (error: any) {
+            throw (
+                error.response?.data ||
+                "Couldn't add friend: " + error.message
+            );
+        }
+    },
+    async getFriendRequestList(userId: number) {
+        try {
+            const response = await apiClient.get(
+                `/getFriendRequestList/${userId}`
+            );
+            return response.data;
+        } catch (error: any) {
+            throw (
+                error.response?.data ||
+                "Couldn't fetch friend request list: " + error.message
             );
         }
     },

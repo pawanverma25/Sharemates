@@ -149,7 +149,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             // Clear stored user data and token
             await SecureStore.deleteItemAsync("user");
             await SecureStore.deleteItemAsync("token");
-
             setUser(null);
             router.replace("/" as RelativePathString);
         } catch (e) {

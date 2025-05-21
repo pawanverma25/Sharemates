@@ -1,6 +1,6 @@
 import axios from "axios";
 import { storageService } from "./storageService";
-import { API_BASE_URL } from "@/util/constants";
+import { API_BASE_URL } from "@/constants/proxy";
 
 const apiClient = axios.create({
     baseURL: API_BASE_URL,

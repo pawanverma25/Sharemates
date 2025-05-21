@@ -2,6 +2,7 @@ import { useAlert } from "@/context/AlertContext";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
 import { userService } from "@/services/userService";
+import { ValidationUtil } from "@/util/validations";
 import { Link, router } from "expo-router";
 import { ArrowRight, Eye, EyeOff } from "lucide-react-native";
 import React, { useState } from "react";
@@ -43,71 +44,26 @@ export default function RegisterScreen() {
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const validateName = (text: string) => {
-        if (!text.trim()) {
+        try{
+            ValidationUtil.validateName(text);
+        } catch (error: any){
             setFieldErrors((prev) => ({
                 ...prev,
-                name: "Name is required",
+                name: error.message,
             }));
             return false;
         }
-        if (text.length < 2) {
-            setFieldErrors((prev) => ({
-                ...prev,
-                name: "Name must be at least 2 characters",
-            }));
-            return false;
-        }
-        if (text.length > 50) {
-            setFieldErrors((prev) => ({
-                ...prev,
-                name: "Name must be less than 50 characters",
-            }));
-            return false;
-        }
-        if (!text.match(/^[a-zA-Z\s'-]+$/)) {
-            setFieldErrors((prev) => ({
-                ...prev,
-                name: "Name can only contain letters, spaces, hyphens and apostrophes",
-            }));
-            return false;
-        }
-        if (text.match(/\s{4,}/)) {
-            setFieldErrors((prev) => ({
-                ...prev,
-                name: "Name cannot contain multiple spaces",
-            }));
-            return false;
-        }
-        setFieldErrors((prev) => ({ ...prev, name: undefined }));
+        setFieldErrors((prev) => ({ ...prev, email: undefined }));
         return true;
     };
 
     const validateUsername = (text: string) => {
-        if (!text.trim()) {
+        try{
+            ValidationUtil.validateUsername(text);
+        } catch (error: any){
             setFieldErrors((prev) => ({
                 ...prev,
-                username: "Username is required",
-            }));
-            return false;
-        }
-        if (text.length < 3) {
-            setFieldErrors((prev) => ({
-                ...prev,
-                username: "Username must be at least 3 characters",
-            }));
-            return false;
-        }
-        if (text.length > 20) {
-            setFieldErrors((prev) => ({
-                ...prev,
-                username: "Username must be less than 20 characters",
-            }));
-            return false;
-        }
-        if (text.match(/[^a-zA-Z0-9]/)) {
-            setFieldErrors((prev) => ({
-                ...prev,
-                username: "Username must contain only letters and numbers",
+                username: error.message,
             }));
             return false;
         }
@@ -116,14 +72,12 @@ export default function RegisterScreen() {
     };
 
     const validateEmail = (text: string) => {
-        if (!text.trim()) {
-            setFieldErrors((prev) => ({ ...prev, email: "Email is required" }));
-            return false;
-        }
-        if (!text.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
+        try{
+            ValidationUtil.validateEmail(text);
+        } catch (error: any){
             setFieldErrors((prev) => ({
                 ...prev,
-                email: "Please enter a valid email address",
+                email: error.message,
             }));
             return false;
         }
@@ -132,59 +86,12 @@ export default function RegisterScreen() {
     };
 
     const validatePassword = (text: string) => {
-        if (!text) {
+        try{
+            ValidationUtil.validatePassword(text);
+        } catch (error: any){
             setFieldErrors((prev) => ({
                 ...prev,
-                password: "Password is required",
-            }));
-            return false;
-        }
-        if (text.length < 8) {
-            setFieldErrors((prev) => ({
-                ...prev,
-                password: "Password must be at least 8 characters",
-            }));
-            return false;
-        }
-        if (text.length > 32) {
-            setFieldErrors((prev) => ({
-                ...prev,
-                password: "Password must be less than 32 characters",
-            }));
-            return false;
-        }
-        if (!text.match(/[A-Z]/)) {
-            setFieldErrors((prev) => ({
-                ...prev,
-                password: "Password must contain at least one uppercase letter",
-            }));
-            return false;
-        }
-        if (!text.match(/[a-z]/)) {
-            setFieldErrors((prev) => ({
-                ...prev,
-                password: "Password must contain at least one lowercase letter",
-            }));
-            return false;
-        }
-        if (!text.match(/[0-9]/)) {
-            setFieldErrors((prev) => ({
-                ...prev,
-                password: "Password must contain at least one number",
-            }));
-            return false;
-        }
-        if (!text.match(/[!@#$%^&*(),.?":{}|<>]/)) {
-            setFieldErrors((prev) => ({
-                ...prev,
-                password: 'Password must contain at least one special character (!@#$%^&*(),.?":{}|<>)',
-            }));
-            return false;
-        }
-        if (text.match(/\s/)) {
-            setFieldErrors((prev) => ({
-                ...prev,
-                password: "Password cannot contain spaces",
+                password: error.message,
             }));
             return false;
         }
@@ -193,17 +100,12 @@ export default function RegisterScreen() {
     };
 
     const validateConfirmPassword = (text: string) => {
-        if (!text) {
+        try{
+            ValidationUtil.validateConfirmPassword(text, password);
+        } catch (error: any){
             setFieldErrors((prev) => ({
                 ...prev,
-                confirmPassword: "Please confirm your password",
-            }));
-            return false;
-        }
-        if (text !== password) {
-            setFieldErrors((prev) => ({
-                ...prev,
-                confirmPassword: "Passwords do not match",
+                confirmPassword: error.message,
             }));
             return false;
         }

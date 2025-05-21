@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { router } from 'expo-router';
 import { ArrowLeft, Users, X } from 'lucide-react-native';
+import { useTheme } from "@/context/ThemeContext";
 
 // Mock data for friends
 const mockFriends = [
@@ -13,12 +14,12 @@ const mockFriends = [
 ];
 
 export default function CreateGroupScreen() {
+  const { colors } = useTheme();
   const [groupName, setGroupName] = useState('');
   const [selectedFriends, setSelectedFriends] = useState<number[]>([]);
   const [showFriendSelector, setShowFriendSelector] = useState(false);
 
   const handleSave = () => {
-    // Basic validation
     if (!groupName) {
       Alert.alert('Error', 'Please enter a group name');
       return;
@@ -29,7 +30,6 @@ export default function CreateGroupScreen() {
       return;
     }
     
-    // In a real app, you would call your API here
     Alert.alert(
       'Success',
       'Group created successfully',
@@ -58,9 +58,177 @@ export default function CreateGroupScreen() {
     }
   };
 
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      backgroundColor: colors.background,
+      paddingTop: 50,
+      paddingBottom: 16,
+      paddingHorizontal: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    backButton: {
+      padding: 4,
+    },
+    headerTitle: {
+      fontFamily: 'Inter-SemiBold',
+      fontSize: 18,
+      color: colors.text,
+    },
+    saveButton: {
+      paddingVertical: 6,
+      paddingHorizontal: 12,
+      borderRadius: 16,
+      backgroundColor: colors.primary,
+    },
+    saveButtonText: {
+      fontFamily: 'Inter-Medium',
+      fontSize: 14,
+      color: colors.background,
+    },
+    content: {
+      flex: 1,
+      padding: 16,
+    },
+    formSection: {
+      backgroundColor: colors.card,
+      borderRadius: 8,
+      padding: 16,
+      marginBottom: 16,
+    },
+    sectionTitle: {
+      fontFamily: 'Inter-SemiBold',
+      fontSize: 16,
+      color: colors.text,
+      marginBottom: 16,
+    },
+    inputContainer: {
+      marginBottom: 16,
+    },
+    label: {
+      fontFamily: 'Inter-Medium',
+      fontSize: 14,
+      color: colors.secondaryText,
+      marginBottom: 8,
+    },
+    input: {
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 8,
+      padding: 12,
+      fontFamily: 'Inter-Regular',
+      fontSize: 16,
+      color: colors.text,
+    },
+    selectorButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 8,
+      padding: 12,
+    },
+    selectorButtonText: {
+      fontFamily: 'Inter-Regular',
+      fontSize: 16,
+      color: colors.text,
+      marginLeft: 8,
+      flex: 1,
+    },
+    selectedFriendsSection: {
+      backgroundColor: colors.card,
+      borderRadius: 8,
+      padding: 16,
+      marginBottom: 16,
+    },
+    selectedFriendItem: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    selectedFriendName: {
+      fontFamily: 'Inter-Medium',
+      fontSize: 16,
+      color: colors.text,
+    },
+    modalOverlay: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 1000,
+    },
+    modalContent: {
+      backgroundColor: colors.card,
+      borderRadius: 12,
+      width: '80%',
+      maxHeight: '70%',
+      padding: 16,
+    },
+    modalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 16,
+    },
+    modalTitle: {
+      fontFamily: 'Inter-SemiBold',
+      fontSize: 18,
+      color: colors.text,
+    },
+    modalList: {
+      maxHeight: 300,
+    },
+    modalItem: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    modalItemText: {
+      fontFamily: 'Inter-Regular',
+      fontSize: 16,
+      color: colors.text,
+    },
+    selectedIndicator: {
+      width: 16,
+      height: 16,
+      borderRadius: 8,
+      backgroundColor: colors.primary,
+    },
+    modalButton: {
+      backgroundColor: colors.primary,
+      borderRadius: 8,
+      padding: 12,
+      alignItems: 'center',
+      marginTop: 16,
+    },
+    modalButtonText: {
+      fontFamily: 'Inter-Medium',
+      fontSize: 16,
+      color: colors.background,
+    },
+  });
+
   return (
     <KeyboardAvoidingView 
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior='padding'
       style={styles.container}
     >
       <View style={styles.header}>
@@ -68,7 +236,7 @@ export default function CreateGroupScreen() {
           style={styles.backButton}
           onPress={() => router.back()}
         >
-          <ArrowLeft size={24} color="#333" />
+          <ArrowLeft size={24} color={colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Create Group</Text>
         <TouchableOpacity 
@@ -88,6 +256,7 @@ export default function CreateGroupScreen() {
             <TextInput
               style={styles.input}
               placeholder="Enter a name for your group"
+              placeholderTextColor={colors.secondaryText}
               value={groupName}
               onChangeText={setGroupName}
             />
@@ -99,7 +268,7 @@ export default function CreateGroupScreen() {
               style={styles.selectorButton}
               onPress={() => setShowFriendSelector(true)}
             >
-              <Users size={20} color="#666" />
+              <Users size={20} color={colors.secondaryText} />
               <Text style={styles.selectorButtonText}>{getSelectedFriendsText()}</Text>
             </TouchableOpacity>
           </View>
@@ -119,7 +288,7 @@ export default function CreateGroupScreen() {
                   <TouchableOpacity
                     onPress={() => toggleFriendSelection(friend.id)}
                   >
-                    <X size={20} color="#666" />
+                    <X size={20} color={colors.secondaryText} />
                   </TouchableOpacity>
                 </View>
               );
@@ -136,7 +305,7 @@ export default function CreateGroupScreen() {
               <TouchableOpacity 
                 onPress={() => setShowFriendSelector(false)}
               >
-                <X size={24} color="#333" />
+                <X size={24} color={colors.text} />
               </TouchableOpacity>
             </View>
             
@@ -167,167 +336,3 @@ export default function CreateGroupScreen() {
     </KeyboardAvoidingView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F7F7F7',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#fff',
-    paddingTop: 50,
-    paddingBottom: 16,
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E1E1E1',
-  },
-  backButton: {
-    padding: 4,
-  },
-  headerTitle: {
-    fontFamily: 'Inter-SemiBold',
-    fontSize: 18,
-    color: '#333',
-  },
-  saveButton: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 16,
-    backgroundColor: '#00A86B',
-  },
-  saveButtonText: {
-    fontFamily: 'Inter-Medium',
-    fontSize: 14,
-    color: '#fff',
-  },
-  content: {
-    flex: 1,
-  },
-  formSection: {
-    backgroundColor: '#fff',
-    marginBottom: 16,
-    padding: 16,
-  },
-  sectionTitle: {
-    fontFamily: 'Inter-SemiBold',
-    fontSize: 16,
-    color: '#333',
-    marginBottom: 16,
-  },
-  inputContainer: {
-    marginBottom: 16,
-  },
-  label: {
-    fontFamily: 'Inter-Medium',
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 8,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#E1E1E1',
-    borderRadius: 8,
-    padding: 12,
-    fontFamily: 'Inter-Regular',
-    fontSize: 16,
-  },
-  selectorButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E1E1E1',
-    borderRadius: 8,
-    padding: 12,
-  },
-  selectorButtonText: {
-    fontFamily: 'Inter-Regular',
-    fontSize: 16,
-    color: '#333',
-    marginLeft: 8,
-    flex: 1,
-  },
-  selectedFriendsSection: {
-    backgroundColor: '#fff',
-    padding: 16,
-    marginBottom: 16,
-  },
-  selectedFriendItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
-  },
-  selectedFriendName: {
-    fontFamily: 'Inter-Medium',
-    fontSize: 16,
-    color: '#333',
-  },
-  modalOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 1000,
-  },
-  modalContent: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    width: '80%',
-    maxHeight: '70%',
-    padding: 16,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  modalTitle: {
-    fontFamily: 'Inter-SemiBold',
-    fontSize: 18,
-    color: '#333',
-  },
-  modalList: {
-    maxHeight: 300,
-  },
-  modalItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
-  },
-  modalItemText: {
-    fontFamily: 'Inter-Regular',
-    fontSize: 16,
-    color: '#333',
-  },
-  selectedIndicator: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: '#00A86B',
-  },
-  modalButton: {
-    backgroundColor: '#00A86B',
-    borderRadius: 8,
-    padding: 12,
-    alignItems: 'center',
-    marginTop: 16,
-  },
-  modalButtonText: {
-    fontFamily: 'Inter-Medium',
-    fontSize: 16,
-    color: '#fff',
-  },
-});
