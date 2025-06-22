@@ -22,5 +22,16 @@ export const groupService = {
                 "Couldn't fetch group members: " + error.message
             );
         }
-    }
+    },
+    async getGroupDetails(groupId: number) {
+        try {
+            const response = await apiClient.get(`/getGroupDetails/${groupId}`);
+            return response.data;
+        } catch (error: any) {
+            throw (
+                error.response?.data ||
+                "Couldn't fetch groups List: " + error.message
+            );
+        }
+    },
 };

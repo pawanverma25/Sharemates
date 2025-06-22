@@ -3,7 +3,7 @@ import { ExpenseSplitType, ExpenseType } from "@/definitions/expense";
 import { expensesService } from "@/services/expensesService";
 import { formatCurrency, formatDate } from "@/util/commonFunctions";
 import { RouteProp, useRoute } from "@react-navigation/native";
-import { router, useLocalSearchParams } from "expo-router";
+import { RelativePathString, router, useLocalSearchParams } from "expo-router";
 import {
     ArrowLeft,
     Calendar,
@@ -21,6 +21,7 @@ import {
     View,
 } from "react-native";
 import { useTheme } from "../../context/ThemeContext";
+import { expenseCategoryLabels } from "@/constants/expense";
 
 export default function ExpenseDetailsScreen() {
     const route = useRoute<
@@ -40,7 +41,12 @@ export default function ExpenseDetailsScreen() {
     const [splits, setSplits] = useState<ExpenseSplitType[]>([]);
 
     const handleEdit = () => {
-        router.push(`/expenses/edit/${id}`);
+        router.push({
+            pathname: `/expenses/edit/${id}` as RelativePathString,
+            params: {
+                expense: JSON.stringify(expense),
+            },
+        });
     };
 
     const handleDelete = () => {
@@ -92,6 +98,11 @@ export default function ExpenseDetailsScreen() {
         },
         actionButtons: {
             flexDirection: "row",
+            gap: 16,
+        },
+        headerContentContainer: {
+            flexDirection: "row",
+            alignItems: "center",
             gap: 16,
         },
         headerContent: {
@@ -236,17 +247,30 @@ export default function ExpenseDetailsScreen() {
                         </TouchableOpacity>
                     </View>
                 </View>
-                <View style={styles.headerContent}>
-                    <Text style={styles.description}>
-                        {expense.description}
-                    </Text>
-                    <Text style={styles.amount}>
-                        {formatCurrency(expense.amount)}
-                    </Text>
-                    <Text style={styles.body}>
-                        Added by {expense.createdBy.name}, on{" "}
-                        {formatDate(expense.createdDate)}
-                    </Text>
+                <View style={styles.headerContentContainer}>
+                    {(() => {
+                        const categoryKey =
+                            expense.expenseCategory as keyof typeof expenseCategoryLabels;
+                        const IconComponent =
+                            expenseCategoryLabels[categoryKey]?.icon;
+                        const iconColor =
+                            expenseCategoryLabels[categoryKey]?.color;
+                        return IconComponent ? (
+                            <IconComponent size={64} color={iconColor} />
+                        ) : null;
+                    })()}
+                    <View style={styles.headerContent}>
+                        <Text style={styles.description}>
+                            {expense.description}
+                        </Text>
+                        <Text style={styles.amount}>
+                            {formatCurrency(expense.amount)}
+                        </Text>
+                        <Text style={styles.body}>
+                            Added by {expense.createdBy.name}, on{" "}
+                            {formatDate(expense.createdDate)}
+                        </Text>
+                    </View>
                 </View>
             </View>
 
@@ -297,58 +321,33 @@ export default function ExpenseDetailsScreen() {
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Split Details</Text>
                     {splits?.map((split: ExpenseSplitType, index: number) => {
-                        if(split.amountOwed == 0) return null;
-                        return <View key={index} style={styles.splitItem}>
-                            <View>
-                                <Text style={styles.splitName}>
-                                    {split.user.name}
-                                </Text>
-                                <Text
-                                    style={[
-                                        styles.paidStatus,
-                                        split.paid == "Y"
-                                            ? styles.paidStatusPaid
-                                            : styles.paidStatusUnpaid,
-                                    ]}
-                                >
-                                    {split.paid == "Y" ? "Paid" : "Not paid"}
+                        if (split.amountOwed == 0) return null;
+                        return (
+                            <View key={index} style={styles.splitItem}>
+                                <View>
+                                    <Text style={styles.splitName}>
+                                        {split.user.name}
+                                    </Text>
+                                    <Text
+                                        style={[
+                                            styles.paidStatus,
+                                            split.paid == "Y"
+                                                ? styles.paidStatusPaid
+                                                : styles.paidStatusUnpaid,
+                                        ]}
+                                    >
+                                        {split.paid == "Y"
+                                            ? "Paid"
+                                            : "Not paid"}
+                                    </Text>
+                                </View>
+                                <Text style={styles.splitAmount}>
+                                    {formatCurrency(split?.amountOwed)}
                                 </Text>
                             </View>
-                            <Text style={styles.splitAmount}>
-                                {formatCurrency(split?.amountOwed)}
-                            </Text>
-                        </View>
+                        );
                     })}
                 </View>
-
-                {/* {expense.receipt && (
-                    <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>Receipt</Text>
-                        <View style={styles.receiptContainer}>
-                            <Image
-                                source={{ uri: expense.receipt }}
-                                style={styles.receiptImage}
-                                resizeMode="cover"
-                            />
-                            <TouchableOpacity
-                                style={styles.settleButton}
-                                onPress={handleExport}
-                            >
-                                <Text style={styles.settleButtonText}>
-                                    Download Receipt{" "}
-                                    <Download size={16} color="#fff" />
-                                </Text>
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                )} */}
-
-                {/* {expense.notes && (
-                    <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>Notes</Text>
-                        <Text style={styles.notes}>{expense.notes}</Text>
-                    </View>
-                )} */}
 
                 <TouchableOpacity
                     style={styles.settleButton}

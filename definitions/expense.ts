@@ -5,13 +5,11 @@ export type SplitType = "EQUAL" | "EXACT" | "PERCENTAGE" | "SHARES";
 export type ExpenseCategoryType =
     | "FOOD_DINING"
     | "HOUSING_UTILITIES"
-    | "TRANSPORTATION"
     | "ENTERTAINMENT"
     | "SHOPPING"
     | "HEALTH_FITNESS"
     | "TRAVEL"
     | "EDUCATION"
-    | "LOANS_DEBTS"
     | "MISCELLANEOUS";
 
 export type ExpenseType = {
@@ -38,7 +36,6 @@ export type ExpenseSplitType = {
     paid: string;
 };
 
-
 export type ExpenseRequestType = {
     description: string;
     createdDate: string;
@@ -53,4 +50,4 @@ export type ExpenseRequestType = {
 export type participantType = {
     id: number;
     amount: number;
-}
+};

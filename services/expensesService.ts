@@ -31,10 +31,24 @@ export const expensesService = {
             );
         }
     },
-    async addExpenses(expenseRequest : ExpenseRequestType) {
+    async addExpenses(expenseRequest: ExpenseRequestType) {
         try {
             const response = await apiClient.post(
                 `/addExpenses`,
+                expenseRequest
+            );
+            return response.data;
+        } catch (error: any) {
+            throw (
+                error.response?.data ||
+                "Couldn't fetch balances: " + error.message
+            );
+        }
+    },
+    async editExpenses(expenseRequest: ExpenseRequestType) {
+        try {
+            const response = await apiClient.post(
+                `/editExpenses`,
                 expenseRequest
             );
             return response.data;
