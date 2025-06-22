@@ -1,4 +1,4 @@
-package com.anonymous.boltexponativewind
+package dev.pawan.Sharemates
 
 import android.app.Application
 import android.content.res.Configuration
