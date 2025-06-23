@@ -32,8 +32,21 @@ export const friendsService = {
             return response.data;
         } catch (error: any) {
             throw (
+                error.response?.data || "Couldn't add friend: " + error.message
+            );
+        }
+    },
+    async updateFriendRequest(friendRequest: FriendType) {
+        try {
+            const response = await apiClient.post(
+                `/updateFriendRequest/`,
+                friendRequest
+            );
+            return response.data;
+        } catch (error: any) {
+            throw (
                 error.response?.data ||
-                "Couldn't add friend: " + error.message
+                "Couldn't update friend request: " + error.message
             );
         }
     },

@@ -2,15 +2,17 @@ import { useAlert } from "@/context/AlertContext";
 import { useAuth } from "@/context/AuthContext";
 import { useRefresh } from "@/context/RefreshContext";
 import { useTheme } from "@/context/ThemeContext";
+import { FriendType } from "@/definitions/friend";
 import { GroupType } from "@/definitions/group";
 import { UserType } from "@/definitions/User";
 import { friendsService } from "@/services/friendsService";
 import { groupService } from "@/services/groupsService";
 import { formatCurrency } from "@/util/commonFunctions";
 import { router } from "expo-router";
-import { Plus, Search, User, Users, UserPlus } from "lucide-react-native";
+import { Plus, Search, User, UserPlus, Users } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
 import {
+    ActivityIndicator,
     RefreshControl,
     ScrollView,
     StyleSheet,
@@ -19,20 +21,6 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
-// Mock data for groups and friends
-const mockGroups = [
-    { id: 1, name: "Roommates", members: 4, totalBalance: 125.5 },
-    { id: 2, name: "Trip to Paris", members: 6, totalBalance: 230.75 },
-    { id: 3, name: "Office Lunch", members: 8, totalBalance: 45.2 },
-];
-
-const mockFriends = [
-    { id: 1, name: "John Doe", balance: 25.5, isOwed: true },
-    { id: 2, name: "Jane Smith", balance: 12.75, isOwed: false },
-    { id: 3, name: "Mike Johnson", balance: 8.3, isOwed: true },
-    { id: 4, name: "Sarah Williams", balance: 15.4, isOwed: false },
-    { id: 5, name: "David Brown", balance: 0, isOwed: true },
-];
 
 export default function GroupsScreen() {
     const { colors } = useTheme();
@@ -45,6 +33,7 @@ export default function GroupsScreen() {
     const [friendList, setFriendList] = useState<UserType[]>([]);
     const [friendRequestList, setFriendRequestList] = useState<UserType[]>([]);
     const [activeTab, setActiveTab] = useState("groups"); // 'groups' or 'friends' or 'requests'
+    const [addingtoFriends, setAddingtoFriends] = useState<number | null>(null);
 
     const filteredGroups = groupList.filter((group) =>
         group.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -53,6 +42,41 @@ export default function GroupsScreen() {
     const filteredFriends = friendList.filter((friend) =>
         friend.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
+
+    const filteredFriendRequest = friendRequestList.filter((friend) =>
+        friend.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    const handleUpdateFriendRequest = (friendId: number) => {
+        const frendRequest: FriendType = {
+            userId: user?.id as number,
+            friendId: friendId,
+            status: "ACCEPTED",
+        };
+        setAddingtoFriends(friendId);
+        friendsService
+            .updateFriendRequest(frendRequest)
+            .then((response) => {
+                showAlert("Success", "Friend request has been sent");
+                const index = friendRequestList.findIndex(
+                    (friend) => friend.id === friendId
+                );
+
+                if (index !== -1) {
+                    setFriendList([...friendList, friendRequestList[index]]);
+                    setFriendRequestList(
+                        friendRequestList.filter(
+                            (friend) => friend.id !== friendId
+                        )
+                    );
+                }
+                setAddingtoFriends(null);
+            })
+            .catch((error) => {
+                showAlert("Error", error);
+                setAddingtoFriends(null);
+            });
+    };
 
     const onLoadCallAPIs = () => {
         setIsRefreshing(true);
@@ -238,6 +262,17 @@ export default function GroupsScreen() {
             color: colors.text,
             marginBottom: 4,
         },
+        friendUserName: {
+            fontFamily: "Inter-Medium",
+            fontSize: 12,
+            color: colors.secondaryText,
+            marginBottom: 4,
+        },
+        friendEmail: {
+            fontFamily: "Inter-Regular",
+            fontSize: 14,
+            color: colors.text,
+        },
         friendBalance: {
             fontFamily: "Inter-Medium",
             fontSize: 14,
@@ -264,6 +299,7 @@ export default function GroupsScreen() {
             color: colors.secondaryText,
         },
     });
+
     return (
         <View style={styles.container}>
             <View style={styles.searchContainer}>
@@ -485,29 +521,42 @@ export default function GroupsScreen() {
                     </>
                 ) : (
                     <>
-                        {friendRequestList.length > 0 ? (
-                            friendRequestList.map((friend) => (
-                                <TouchableOpacity
-                                    key={friend.id}
-                                style={styles.friendItem}
-                                onPress={() =>
-                                    router.push(`/groups/friends/${friend.id}`)
-                                }
-                            >
-                                <View style={styles.friendIcon}>
-                                    <User size={24} color={colors.text} />
-                                </View>
-                                <View style={styles.friendDetails}>
-                                    <Text style={styles.friendName}>
-                                        {friend.name}
-                                    </Text>
-                                        {
-                                            <Text style={styles.settledBalance}>
-                                                {friend.username}
-                                            </Text>
-                                        }
+                        {filteredFriendRequest.length > 0 ? (
+                            filteredFriendRequest.map((friend) => (
+                                <View key={friend.id} style={styles.friendItem}>
+                                    <View style={styles.friendIcon}>
+                                        <User size={24} color={colors.card} />
                                     </View>
-                                </TouchableOpacity>
+                                    <View style={styles.friendDetails}>
+                                        <Text style={styles.friendName}>
+                                            {friend.name}
+                                        </Text>
+                                        <Text style={styles.friendUserName}>
+                                            {friend.username}
+                                        </Text>
+                                        {/* <Text style={styles.friendEmail}>
+                                            {friend.email}
+                                        </Text> */}
+                                    </View>
+                                    <TouchableOpacity
+                                        style={styles.addButton}
+                                        onPress={() =>
+                                            handleUpdateFriendRequest(friend.id)
+                                        }
+                                    >
+                                        {friend.id === addingtoFriends ? (
+                                            <ActivityIndicator
+                                                size={20}
+                                                color={colors.primary}
+                                            />
+                                        ) : (
+                                            <UserPlus
+                                                size={20}
+                                                color={colors.primary}
+                                            />
+                                        )}
+                                    </TouchableOpacity>
+                                </View>
                             ))
                         ) : (
                             <View style={styles.emptyState}>
