@@ -1,5 +1,6 @@
 import { FriendType } from "@/definitions/friend";
 import apiClient from "./apiClient";
+import { SettleExpenseRequestType } from "@/definitions/expense";
 
 export const friendsService = {
     async getFriends(userId: number) {
@@ -60,6 +61,20 @@ export const friendsService = {
             throw (
                 error.response?.data ||
                 "Couldn't fetch friend request list: " + error.message
+            );
+        }
+    },
+    async settleFriendExpenses(settleExpenseRequest: SettleExpenseRequestType) {
+        try {
+            const response = await apiClient.post(
+                `/settleFriendExpenses/`,
+                settleExpenseRequest
+            );
+            return response.data;
+        } catch (error: any) {
+            throw (
+                error.response?.data ||
+                "Couldn't settle friend expenses : " + error.message
             );
         }
     },

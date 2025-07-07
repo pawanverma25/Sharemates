@@ -33,7 +33,7 @@ export type ExpenseSplitType = {
     expenseId: number;
     user: UserType;
     amountOwed: number;
-    paid: string;
+    amountPaid: number;
 };
 
 export type ExpenseRequestType = {
@@ -44,10 +44,16 @@ export type ExpenseRequestType = {
     createdBy: number;
     amount: number;
     splitType: string;
-    participants: participantType[];
+    participants: ParticipantType[];
 };
 
-export type participantType = {
+export type ParticipantType = {
     id: number;
     amount: number;
+};
+
+export type SettleExpenseRequestType = {
+    expenseId?: number;
+    userId: number;
+    friendId?: number;
 };

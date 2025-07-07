@@ -1,4 +1,7 @@
-import { ExpenseRequestType } from "@/definitions/expense";
+import {
+    ExpenseRequestType,
+    SettleExpenseRequestType,
+} from "@/definitions/expense";
 import apiClient from "./apiClient";
 
 export const expensesService = {
@@ -56,6 +59,31 @@ export const expensesService = {
             throw (
                 error.response?.data ||
                 "Couldn't fetch balances: " + error.message
+            );
+        }
+    },
+    async deleteExpense(expenseId: number) {
+        try {
+            const response = await apiClient.delete(`/expenses/${expenseId}`);
+            return response.data;
+        } catch (error: any) {
+            throw (
+                error.response?.data ||
+                "Couldn't delete expense: " + error.message
+            );
+        }
+    },
+    async settleExpense(settleExpenseRequest: SettleExpenseRequestType) {
+        try {
+            const response = await apiClient.post(
+                `/settleExpense/`,
+                settleExpenseRequest
+            );
+            return response.data;
+        } catch (error: any) {
+            throw (
+                error.response?.data ||
+                "Couldn't settle expense: " + error.message
             );
         }
     },

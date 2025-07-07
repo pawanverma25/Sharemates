@@ -22,6 +22,7 @@ import {
 } from "react-native";
 import { useTheme } from "../../context/ThemeContext";
 import { expenseCategoryLabels } from "@/constants/expense";
+import { useAuth } from "@/context/AuthContext";
 
 export default function ExpenseDetailsScreen() {
     const route = useRoute<
@@ -35,6 +36,7 @@ export default function ExpenseDetailsScreen() {
         >
     >();
     const expense: ExpenseType = JSON.parse(route.params?.expense);
+    const { user } = useAuth();
     const { colors } = useTheme();
     const { id } = useLocalSearchParams();
     const { showAlert } = useAlert();
@@ -57,7 +59,21 @@ export default function ExpenseDetailsScreen() {
     };
 
     const handleSettleUp = () => {
-        showAlert("Settle Up", "Do you want to mark this expense as settled?");
+        expensesService
+            .settleExpense({
+                userId: user?.id || -1,
+                expenseId: expense.id,
+                amountPaid:
+                    splits.filter((split) => split.user.id === user?.id)[0]
+                        ?.amountOwed || 0,
+            })
+            .then(() => {
+                showAlert("Success", "Expense settled successfully.");
+                router.back();
+            })
+            .catch((error) => {
+                showAlert("Error", error);
+            });
     };
 
     const onLoadCallAPIs = async () => {
@@ -331,12 +347,13 @@ export default function ExpenseDetailsScreen() {
                                     <Text
                                         style={[
                                             styles.paidStatus,
-                                            split.paid == "Y"
+                                            split.amountPaid ===
+                                            split.amountOwed
                                                 ? styles.paidStatusPaid
                                                 : styles.paidStatusUnpaid,
                                         ]}
                                     >
-                                        {split.paid == "Y"
+                                        {split.amountPaid === split.amountOwed
                                             ? "Paid"
                                             : "Not paid"}
                                     </Text>

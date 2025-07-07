@@ -29,16 +29,14 @@ export default function FriendDetailsScreen() {
     const [friend, setFriend] = useState<FriendDetailsType | null>(null);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        loadFriendDetails();
-    }, [id]);
-
     const loadFriendDetails = async () => {
         try {
             setLoading(true);
             // Since getFriendDetails doesn't exist, we'll use getFriends and filter
             const response = await friendsService.getFriends(user?.id ?? -1);
-            const friendDetails = response.find((f: FriendDetailsType) => f.id === Number(id));
+            const friendDetails = response.find(
+                (f: FriendDetailsType) => f.id === Number(id)
+            );
             setFriend(friendDetails || null);
         } catch (error) {
             showAlert("Error", "Failed to load friend details");
@@ -46,6 +44,28 @@ export default function FriendDetailsScreen() {
             setLoading(false);
         }
     };
+
+    const handleSettleUp = async () => {
+        try {
+            setLoading(true);
+            await friendsService.settleFriendExpenses({
+                userId: user?.id ?? -1,
+                friendId: friend?.id ?? -1,
+            });
+            showAlert("Success", "Settled up successfully");
+            loadFriendDetails();
+        } catch (error) {
+            showAlert("Error", "Failed to settle up");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        loadFriendDetails();
+    }, [id]);
+
+    const balance = friend?.balance ?? 0;
 
     const styles = StyleSheet.create({
         container: {
@@ -161,6 +181,19 @@ export default function FriendDetailsScreen() {
             justifyContent: "center",
             alignItems: "center",
         },
+        settleButton: {
+            backgroundColor: colors.primary,
+            marginHorizontal: 16,
+            marginVertical: 16,
+            padding: 16,
+            borderRadius: 8,
+            alignItems: "center",
+        },
+        settleButtonText: {
+            fontFamily: "Inter-SemiBold",
+            fontSize: 16,
+            color: "#fff",
+        },
     });
 
     if (loading) {
@@ -180,8 +213,6 @@ export default function FriendDetailsScreen() {
             </View>
         );
     }
-
-    const balance = friend.balance ?? 0;
 
     return (
         <View style={styles.container}>
@@ -208,13 +239,15 @@ export default function FriendDetailsScreen() {
 
                 <View style={styles.balanceSection}>
                     <Text style={styles.sectionTitle}>Balance</Text>
-                    
+
                     <View style={styles.balanceItem}>
                         <View style={styles.balanceIcon}>
                             <DollarSign size={24} color={colors.background} />
                         </View>
                         <View style={styles.balanceDetails}>
-                            <Text style={styles.balanceLabel}>Total Balance</Text>
+                            <Text style={styles.balanceLabel}>
+                                Total Balance
+                            </Text>
                             <Text
                                 style={[
                                     styles.balanceAmount,
@@ -228,7 +261,9 @@ export default function FriendDetailsScreen() {
                                 {balance > 0
                                     ? `owes you ${formatCurrency(balance)}`
                                     : balance < 0
-                                    ? `you owe ${formatCurrency(Math.abs(balance))}`
+                                    ? `you owe ${formatCurrency(
+                                          Math.abs(balance)
+                                      )}`
                                     : "all settled up"}
                             </Text>
                         </View>
@@ -239,14 +274,23 @@ export default function FriendDetailsScreen() {
                             <CreditCard size={24} color={colors.background} />
                         </View>
                         <View style={styles.balanceDetails}>
-                            <Text style={styles.balanceLabel}>Recent Transactions</Text>
+                            <Text style={styles.balanceLabel}>
+                                Recent Transactions
+                            </Text>
                             <Text style={styles.balanceAmount}>
-                                {friend.recentTransactions || "No recent transactions"}
+                                {friend.recentTransactions ||
+                                    "No recent transactions"}
                             </Text>
                         </View>
                     </View>
+                    <TouchableOpacity
+                        style={styles.settleButton}
+                        onPress={handleSettleUp}
+                    >
+                        <Text style={styles.settleButtonText}>Settle Up</Text>
+                    </TouchableOpacity>
                 </View>
             </ScrollView>
         </View>
     );
-} 
+}

@@ -356,7 +356,7 @@ export default function DashboardScreen() {
 
                     <TouchableOpacity
                         style={styles.actionButton}
-                        onPress={() => router.push("/expenses/settle")}
+                        onPress={() => router.push("/(tabs)/groups")}
                     >
                         <DollarSign size={24} color="#00A86B" />
                         <Text style={styles.actionButtonText}>Settle Up</Text>
@@ -398,12 +398,16 @@ export default function DashboardScreen() {
                         <View style={styles.expenseAmount}>
                             <Text
                                 style={
-                                    expense.amountOwed < 0
+                                    expense.amountOwed <= 0
                                         ? styles.expensePositiveAmountText
                                         : styles.expenseNegativeAmountText
                                 }
                             >
-                                {formatCurrency(Math.abs(expense.amountOwed))}
+                                {expense.amountOwed === 0
+                                    ? "Stetled up"
+                                    : formatCurrency(
+                                          Math.abs(expense.amountOwed)
+                                      )}
                             </Text>
                             <ArrowRight size={16} color="#888" />
                         </View>
@@ -424,7 +428,9 @@ export default function DashboardScreen() {
                         key={index}
                         style={styles.balanceRow}
                         onPress={() =>
-                            router.push(`/groups/friends/${balance.id}`)
+                            router.push(
+                                `/groups/friends/${balance.friendId}` as RelativePathString
+                            )
                         }
                     >
                         <Text style={styles.balanceName}>
@@ -433,13 +439,17 @@ export default function DashboardScreen() {
                         <Text
                             style={[
                                 styles.balanceRowAmount,
-                                balance.amount > 0
+                                balance.amount >= 0
                                     ? styles.positiveAmount
                                     : styles.negativeAmount,
                             ]}
                         >
-                            {balance.amount > 0 ? "owes you " : "you owe "}
-                            {formatCurrency(Math.abs(balance.amount))}
+                            {balance.amount == 0
+                                ? "settled up"
+                                : (balance.amount > 0
+                                      ? "owes you "
+                                      : "you owe ") +
+                                  formatCurrency(Math.abs(balance.amount))}
                         </Text>
                     </TouchableOpacity>
                 ))}
