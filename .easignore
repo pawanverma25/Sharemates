@@ -33,5 +33,6 @@ yarn-error.*
 # typescript
 *.tsbuildinfo
 
-/google-services.json
 /sharemates-2d8b5-firebase-adminsdk-fbsvc-c70d1d49da.json
+/android
+/ios

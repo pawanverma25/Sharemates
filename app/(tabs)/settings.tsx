@@ -23,13 +23,12 @@ import {
 import { useTheme } from "@/context/ThemeContext";
 import { useAuth } from "@/context/AuthContext";
 import { useAlert } from "@/context/AlertContext";
+import { usePreferences } from "@/context/PreferencesContext";
 export default function SettingsScreen() {
     const { user, signOut } = useAuth();
     const { isDark, setTheme, colors } = useTheme();
     const { showAlert } = useAlert();
-
-    const [notifications, setNotifications] = useState(true);
-    const [emailNotifications, setEmailNotifications] = useState(true);
+    const { preferences, setPreferences } = usePreferences();
 
     const handleLogout = () => {
         showAlert(
@@ -187,7 +186,7 @@ export default function SettingsScreen() {
                     <ChevronRight size={20} color={colors.secondaryText} />
                 </TouchableOpacity>
 
-                <TouchableOpacity
+                {/* <TouchableOpacity
                     style={styles.settingItem}
                     onPress={() =>
                         router.push(
@@ -200,7 +199,7 @@ export default function SettingsScreen() {
                     </View>
                     <Text style={styles.settingText}>Payment Methods</Text>
                     <ChevronRight size={20} color={colors.secondaryText} />
-                </TouchableOpacity>
+                </TouchableOpacity> */}
             </View>
 
             <View style={styles.section}>
@@ -212,8 +211,14 @@ export default function SettingsScreen() {
                     </View>
                     <Text style={styles.settingText}>Push Notifications</Text>
                     <Switch
-                        value={notifications}
-                        onValueChange={setNotifications}
+                        value={preferences?.pushNotifications}
+                        onValueChange={() =>
+                            setPreferences({
+                                ...preferences,
+                                pushNotifications:
+                                    !preferences?.pushNotifications,
+                            })
+                        }
                         trackColor={{ false: "#E1E1E1", true: colors.primary }}
                         thumbColor="#fff"
                     />
@@ -225,14 +230,20 @@ export default function SettingsScreen() {
                     </View>
                     <Text style={styles.settingText}>Email Notifications</Text>
                     <Switch
-                        value={emailNotifications}
-                        onValueChange={setEmailNotifications}
+                        value={preferences?.emailNotifications}
+                        onValueChange={() =>
+                            setPreferences({
+                                ...preferences,
+                                emailNotifications:
+                                    !preferences?.emailNotifications,
+                            })
+                        }
                         trackColor={{ false: "#E1E1E1", true: colors.primary }}
                         thumbColor="#fff"
                     />
                 </View>
 
-                <TouchableOpacity
+                {/* <TouchableOpacity
                     style={styles.settingItem}
                     onPress={() =>
                         router.push("/settings/currency" as RelativePathString)
@@ -246,7 +257,7 @@ export default function SettingsScreen() {
                         <Text style={styles.settingValueText}>USD</Text>
                         <ChevronRight size={20} color={colors.secondaryText} />
                     </View>
-                </TouchableOpacity>
+                </TouchableOpacity> */}
 
                 <View style={styles.settingItem}>
                     <View style={styles.settingIconContainer}>

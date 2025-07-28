@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "122778433404",
+    "firebase_url": "https://sharemates-2d8b5-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "sharemates-2d8b5",
+    "storage_bucket": "sharemates-2d8b5.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:122778433404:android:dcf0b3a682977634d916f9",
+        "android_client_info": {
+          "package_name": "dev.pawan.Sharemates"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC2bOldZC0xNYw70SXxy3a15YTbmGtB7v8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

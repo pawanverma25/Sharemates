@@ -57,9 +57,12 @@ export default function GroupsScreen() {
         friendsService
             .updateFriendRequest(frendRequest)
             .then((response) => {
-                showAlert("Success", "Friend request has been sent");
                 const index = friendRequestList.findIndex(
                     (friend) => friend.id === friendId
+                );
+                showAlert(
+                    "Success",
+                    "You are now frieds with " + friendRequestList[index].name
                 );
 
                 if (index !== -1) {

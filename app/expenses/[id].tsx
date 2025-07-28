@@ -63,9 +63,6 @@ export default function ExpenseDetailsScreen() {
             .settleExpense({
                 userId: user?.id || -1,
                 expenseId: expense.id,
-                amountPaid:
-                    splits.filter((split) => split.user.id === user?.id)[0]
-                        ?.amountOwed || 0,
             })
             .then(() => {
                 showAlert("Success", "Expense settled successfully.");
@@ -348,18 +345,23 @@ export default function ExpenseDetailsScreen() {
                                         style={[
                                             styles.paidStatus,
                                             split.amountPaid ===
-                                            split.amountOwed
+                                                split.amountOwed ||
+                                            split.user.id === expense.paidBy.id
                                                 ? styles.paidStatusPaid
                                                 : styles.paidStatusUnpaid,
                                         ]}
                                     >
-                                        {split.amountPaid === split.amountOwed
+                                        {split.amountPaid ===
+                                            split.amountOwed ||
+                                        split.user.id === expense.paidBy.id
                                             ? "Paid"
                                             : "Not paid"}
                                     </Text>
                                 </View>
                                 <Text style={styles.splitAmount}>
-                                    {formatCurrency(split?.amountOwed)}
+                                    {formatCurrency(
+                                        split?.amountOwed - split?.amountPaid
+                                    )}
                                 </Text>
                             </View>
                         );

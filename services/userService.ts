@@ -50,4 +50,31 @@ export const userService = {
             );
         }
     },
+    async getUserPreferences(userId: number) {
+        try {
+            const response = await apiClient.get(
+                `/getUserPreferences/${userId}`
+            );
+            return response.data;
+        } catch (error: any) {
+            throw (
+                error.response?.data ||
+                "Couldn't fetch user preferences: " + error.message
+            );
+        }
+    },
+    async updateUserPreferences(userId: number, preferences: object) {
+        try {
+            const response = await apiClient.post(
+                `/updateUserPreferences/${userId}`,
+                preferences
+            );
+            return response.data;
+        } catch (error: any) {
+            throw (
+                error.response?.data ||
+                "Couldn't update user preferences: " + error.message
+            );
+        }
+    },
 };

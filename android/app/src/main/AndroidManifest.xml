@@ -27,6 +27,7 @@
         <category android:name="android.intent.category.BROWSABLE"/>
         <data android:scheme="myapp"/>
         <data android:scheme="dev.pawan.Sharemates"/>
+        <data android:scheme="exp+sharemateapp"/>
       </intent-filter>
     </activity>
   </application>

@@ -1,15 +1,22 @@
-import React, { createContext, useState, useContext, useEffect } from "react";
+import { AuthResponse, UserType } from "@/definitions/User";
+import apiClient from "@/services/apiClient";
+import { userService } from "@/services/userService";
 import { RelativePathString, router } from "expo-router";
 import * as SecureStore from "expo-secure-store";
-import apiClient from "@/services/apiClient";
+import React, { createContext, useContext, useState } from "react";
 import { ToastAndroid } from "react-native";
-import { AuthResponse, UserType } from "@/definitions/User";
+import { usePreferences } from "./PreferencesContext";
 
 type AuthContextType = {
     user: UserType | null;
     isLoading: boolean;
     signIn: (email: string, password: string) => Promise<void>;
-    signUp: (username:string, name: string, email: string, password: string) => Promise<void>;
+    signUp: (
+        username: string,
+        name: string,
+        email: string,
+        password: string
+    ) => Promise<void>;
     signOut: () => Promise<void>;
     error: string | null;
 };
@@ -22,26 +29,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     const [user, setUser] = useState<UserType | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-
-    // useEffect(() => {
-    //     const loadUser = async () => {
-    //         try {
-    //             const userJson = await SecureStore.getItemAsync("user");
-    //             const token = await SecureStore.getItemAsync("token");
-
-    //             if (userJson && token) {
-    //                 setUser(JSON.parse(userJson));
-    //                 router.replace("/(tabs)" as RelativePathString);
-    //             }
-    //         } catch (e) {
-    //             console.error("Failed to load user from storage", e);
-    //         } finally {
-    //             setIsLoading(false);
-    //         }
-    //     };
-
-    //     loadUser();
-    // }, []);
+    const { preferences, setPreferences } = usePreferences();
 
     const signIn = async (email: string, password: string) => {
         setIsLoading(true);
@@ -78,8 +66,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
                     JSON.stringify(new Date().getTime())
                 ),
             ]);
-
             setUser(authResponse.user);
+
+            if (!preferences) {
+                userService
+                    .getUserPreferences(authResponse.user.id)
+                    .then((prefs) => {
+                        setPreferences(prefs);
+                        SecureStore.setItemAsync(
+                            "preferences",
+                            JSON.stringify(prefs)
+                        );
+                    })
+                    .catch((error) => {
+                        console.error(
+                            "Failed to fetch user preferences",
+                            error
+                        );
+                    });
+            }
+
             if (authResponse.user.emailVerified === "Y")
                 router.replace("/dashboard" as RelativePathString);
             else router.replace("/verify-email" as RelativePathString);
@@ -91,7 +97,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         }
     };
 
-    const signUp = async (username: string, name: string, email: string, password: string) => {
+    const signUp = async (
+        username: string,
+        name: string,
+        email: string,
+        password: string
+    ) => {
         setIsLoading(true);
         setError(null);
 

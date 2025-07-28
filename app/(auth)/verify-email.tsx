@@ -16,6 +16,7 @@ import {
     TouchableOpacity,
     View,
     Animated,
+    BackHandler,
 } from "react-native";
 
 export default function VerifyEmailScreen() {
@@ -130,7 +131,7 @@ export default function VerifyEmailScreen() {
                         ToastAndroid.BOTTOM
                     );
                     router.replace("/dashboard" as RelativePathString);
-                } else if(response.status === 400) {
+                } else if (response.status === 400) {
                     setError(response.data);
                     shakeInputs();
                 } else {
@@ -273,7 +274,7 @@ export default function VerifyEmailScreen() {
             <View style={styles.header}>
                 <TouchableOpacity
                     style={styles.backButton}
-                    onPress={() => router.back()}
+                    onPress={() => BackHandler.exitApp()}
                 >
                     <ArrowLeft size={24} color={colors.text} />
                 </TouchableOpacity>

@@ -34,19 +34,21 @@ export default function Index() {
         checkAuth();
     }, []);
 
-        return (
-            <View
-                style={{
-                    flex: 1,
-                    justifyContent: "center",
-                    alignItems: "center",
-                    backgroundColor: colors.background,
-                    gap: 10,
-                }}
-            >
-                <ActivityIndicator size="large" color={colors.primary} />
-                <Text style={{ color: colors.text }}>Loading...</Text>
-                <Text style={{ color: colors.text, marginTop:10 }}>This might take up to a minute...</Text>
-            </View>
-        );
+    return (
+        <View
+            style={{
+                flex: 1,
+                justifyContent: "center",
+                alignItems: "center",
+                backgroundColor: colors.background,
+                gap: 10,
+            }}
+        >
+            <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={{ color: colors.text }}>Loading...</Text>
+            <Text style={{ color: colors.text, marginTop: 10 }}>
+                This might take up to a minute...
+            </Text>
+        </View>
+    );
 }
