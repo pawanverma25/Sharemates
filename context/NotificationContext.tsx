@@ -1,3 +1,6 @@
+import { registerForPushNotificationsAsync } from "@/util/registerForPushNotificationsAsync";
+import * as Notifications from "expo-notifications";
+import { RelativePathString, useRouter } from "expo-router";
 import React, {
     createContext,
     ReactNode,
@@ -6,8 +9,6 @@ import React, {
     useRef,
     useState,
 } from "react";
-import * as Notifications from "expo-notifications";
-import { registerForPushNotificationsAsync } from "@/util/registerForPushNotificationsAsync";
 import { ToastAndroid } from "react-native";
 
 interface NotificationContextType {
@@ -44,6 +45,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
 
     const notificationListener = useRef<Notifications.EventSubscription>();
     const responseListener = useRef<Notifications.EventSubscription>();
+    const router = useRouter();
 
     useEffect(() => {
         registerForPushNotificationsAsync().then(
@@ -72,7 +74,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
                             2
                         )
                     );
-                    // Handle the notification response here
+                    router.push("(auth)/forgot-password" as RelativePathString);
                 }
             );
 

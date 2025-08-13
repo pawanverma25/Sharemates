@@ -77,4 +77,18 @@ export const userService = {
             );
         }
     },
+    async updateUserPushToken(userId: number, pushToken: string) {
+        try {
+            const response = await apiClient.post("/updateExpoToken", {
+                userId,
+                pushToken,
+            });
+            return response.data;
+        } catch (error: any) {
+            throw (
+                error.response?.data ||
+                "Couldn't update user push token: " + error.message
+            );
+        }
+    },
 };

@@ -6,6 +6,7 @@ import * as SecureStore from "expo-secure-store";
 import React, { createContext, useContext, useState } from "react";
 import { ToastAndroid } from "react-native";
 import { usePreferences } from "./PreferencesContext";
+import { useNotification } from "./NotificationContext";
 
 type AuthContextType = {
     user: UserType | null;
@@ -30,6 +31,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const { preferences, setPreferences } = usePreferences();
+    const { expoPushToken } = useNotification();
 
     const signIn = async (email: string, password: string) => {
         setIsLoading(true);
@@ -84,6 +86,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
                             error
                         );
                     });
+            }
+
+            // Register for push notifications
+            if (expoPushToken) {
+                await userService.updateUserPushToken(
+                    authResponse.user.id,
+                    expoPushToken
+                );
             }
 
             if (authResponse.user.emailVerified === "Y")
