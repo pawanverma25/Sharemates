@@ -8,7 +8,7 @@ import { ActivityIndicator, Text, View } from "react-native";
 export default function Index() {
     const [loading, setLoading] = useState(true);
     const { colors } = useTheme();
-    const { signIn } = useAuth();
+    const { signIn, signInAuto } = useAuth();
 
     useEffect(() => {
         const checkAuth = async () => {
@@ -21,9 +21,14 @@ export default function Index() {
                     storageService.getItemAsync("lastLogin"),
                 ]);
             if (user && tokenExpiry && userCredentials && lastLogin) {
-                if (Number(tokenExpiry) + Number(lastLogin) < Date.now()) {
+                if (
+                    new Date(Number(tokenExpiry) + Number(lastLogin)) <
+                    new Date(Date.now())
+                ) {
                     const { email, password } = JSON.parse(userCredentials);
                     signIn(email, password);
+                } else {
+                    signInAuto();
                 }
             } else {
                 router.replace("/login" as RelativePathString);

@@ -6,7 +6,8 @@ import * as SecureStore from "expo-secure-store";
 import React, { createContext, useContext, useState } from "react";
 import { ToastAndroid } from "react-native";
 import { usePreferences } from "./PreferencesContext";
-import { useNotification } from "./NotificationContext";
+import { authService } from "@/services/authService";
+import { storageService } from "@/services/storageService";
 
 type AuthContextType = {
     user: UserType | null;
@@ -19,6 +20,7 @@ type AuthContextType = {
         password: string
     ) => Promise<void>;
     signOut: () => Promise<void>;
+    signInAuto: () => Promise<void>;
     error: string | null;
 };
 
@@ -31,17 +33,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const { preferences, setPreferences } = usePreferences();
-    const { expoPushToken } = useNotification();
+
+    const signInAuto = async () => {
+        const curUser = await storageService.getItemAsync("user");
+        setUser(curUser ? JSON.parse(curUser) : null);
+        if (curUser) router.replace("/dashboard" as RelativePathString);
+        else router.replace("/login" as RelativePathString);
+    };
 
     const signIn = async (email: string, password: string) => {
         setIsLoading(true);
         setError(null);
         try {
-            const response = await apiClient.post("/login", {
+            const authResponse: AuthResponse = await authService.login(
                 email,
-                password,
-            });
-            const authResponse: AuthResponse = response.data;
+                password
+            );
             authResponse.user.emailVerified = authResponse.emailVerified;
 
             ToastAndroid.showWithGravity(authResponse.message, 1000, 10);
@@ -88,20 +95,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
                     });
             }
 
-            // Register for push notifications
-            if (expoPushToken) {
-                await userService.updateUserPushToken(
-                    authResponse.user.id,
-                    expoPushToken
-                );
-            }
-
             if (authResponse.user.emailVerified === "Y")
                 router.replace("/dashboard" as RelativePathString);
             else router.replace("/verify-email" as RelativePathString);
         } catch (e) {
             setError("Invalid email or password");
-            console.error("Login failed", e);
+            ToastAndroid.showWithGravity(
+                "Login failed. Please check your credentials.",
+                1000,
+                10
+            );
+            await storageService.removeUserSession();
         } finally {
             setIsLoading(false);
         }
@@ -117,18 +121,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         setError(null);
 
         try {
-            const response = await apiClient.post("/register", {
+            const authResponse: AuthResponse = await authService.register(
                 username,
                 name,
                 email,
-                password,
-            });
-            const authResponse: AuthResponse = response.data;
+                password
+            );
             authResponse.user.emailVerified = authResponse.emailVerified;
 
-            ToastAndroid.showWithGravity(authResponse.message, 1000, 10);
-
-            // Store user data and token
             ToastAndroid.showWithGravity(authResponse.message, 1000, 10);
 
             await Promise.all([
@@ -158,6 +158,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         } catch (e) {
             setError("Registration failed. Please try again.");
             console.error("Registration failed", e);
+            ToastAndroid.showWithGravity(
+                "Registration failed. Please try again.",
+                1000,
+                10
+            );
         } finally {
             setIsLoading(false);
         }
@@ -167,13 +172,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         setIsLoading(true);
 
         try {
-            // Clear stored user data and token
-            await SecureStore.deleteItemAsync("user");
-            await SecureStore.deleteItemAsync("token");
+            storageService.removeUserSession();
             setUser(null);
             router.replace("/" as RelativePathString);
+            ToastAndroid.showWithGravity("Logged out successfully.", 1000, 10);
         } catch (e) {
             console.error("Logout failed", e);
+            ToastAndroid.showWithGravity(
+                "Logout failed. Please try again.",
+                1000,
+                10
+            );
         } finally {
             setIsLoading(false);
         }
@@ -181,7 +190,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
     return (
         <AuthContext.Provider
-            value={{ user, isLoading, signIn, signUp, signOut, error }}
+            value={{
+                user,
+                isLoading,
+                signIn,
+                signUp,
+                signOut,
+                error,
+                signInAuto,
+            }}
         >
             {children}
         </AuthContext.Provider>

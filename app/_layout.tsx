@@ -55,10 +55,10 @@ export default function RootLayout() {
     }
 
     return (
-        <NotificationProvider>
-            <ThemeProvider>
-                <PreferencesContextProvider>
-                    <AuthProvider>
+        <ThemeProvider>
+            <PreferencesContextProvider>
+                <AuthProvider>
+                    <NotificationProvider>
                         <AlertProvider>
                             <RefreshProvider>
                                 <Stack screenOptions={{ headerShown: false }}>
@@ -78,9 +78,9 @@ export default function RootLayout() {
                                 <StatusBar style="auto" />
                             </RefreshProvider>
                         </AlertProvider>
-                    </AuthProvider>
-                </PreferencesContextProvider>
-            </ThemeProvider>
-        </NotificationProvider>
+                    </NotificationProvider>
+                </AuthProvider>
+            </PreferencesContextProvider>
+        </ThemeProvider>
     );
 }

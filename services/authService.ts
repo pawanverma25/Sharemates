@@ -13,9 +13,15 @@ export const authService = {
         }
     },
 
-    async register(name: string, email: string, password: string) {
+    async register(
+        username: string,
+        name: string,
+        email: string,
+        password: string
+    ) {
         try {
             const response = await apiClient.post("/register", {
+                username,
                 name,
                 email,
                 password,
@@ -31,6 +37,7 @@ export const authService = {
             await apiClient.post("/auth/logout");
         } catch (error) {
             console.error("Logout failed:", error);
+            throw error;
         }
     },
 };

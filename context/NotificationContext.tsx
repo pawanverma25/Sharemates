@@ -1,3 +1,4 @@
+import { NotificationData } from "@/definitions/Notification";
 import { registerForPushNotificationsAsync } from "@/util/registerForPushNotificationsAsync";
 import * as Notifications from "expo-notifications";
 import { RelativePathString, useRouter } from "expo-router";
@@ -74,7 +75,54 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
                             2
                         )
                     );
-                    router.push("(auth)/forgot-password" as RelativePathString);
+                    const rawData = response.notification.request.content.data;
+                    const data: NotificationData = {
+                        templateCode: rawData.templateCode,
+                        errorCode: rawData.errorCode,
+                        message: rawData.message,
+                        data: rawData.data,
+                    };
+                    try {
+                        switch (data.templateCode) {
+                            case "FRIEND_REQUEST_ACCEPTED":
+                            case "NEW_FRIEND_REQUEST":
+                            case "FRIEND_SETTLED_UP":
+                                router.push({
+                                    pathname:
+                                        `(tabs)/groups` as RelativePathString,
+                                    params: {
+                                        activeTab: "requests",
+                                        userId: data.data.friendId,
+                                    },
+                                });
+                                break;
+                            case "EXPENSE_ADDED":
+                            case "EXPENSE_UPDATED":
+                            case "EXPENSE_SETTLED":
+                            case "EXPENSE_REMINDER":
+                                router.push(
+                                    `/expenses/[${data.data.expenseId}]` as RelativePathString
+                                );
+                                break;
+                            case "GROUP_CREATED":
+                            case "GROUP_MEMBER_ADDED":
+                            case "YOU_JOINED_GROUP":
+                            case "GROUP_DETAILS_UPDATED":
+                            case "GROUP_MEMBER_REMOVED":
+                                router.push(
+                                    `/groups/[${data.data.groupId}]` as RelativePathString
+                                );
+                                break;
+                            default:
+                                router.push("/dashboard" as RelativePathString);
+                                break;
+                        }
+                    } catch (error) {
+                        router.push(
+                            "(auth)/forgot-password" as RelativePathString
+                        );
+                    }
+                    // router.push("(auth)/forgot-password" as RelativePathString);
                 }
             );
 

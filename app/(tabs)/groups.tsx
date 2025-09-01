@@ -8,7 +8,8 @@ import { UserType } from "@/definitions/User";
 import { friendsService } from "@/services/friendsService";
 import { groupService } from "@/services/groupsService";
 import { formatCurrency } from "@/util/commonFunctions";
-import { router } from "expo-router";
+import { RouteProp, useRoute } from "@react-navigation/native";
+import { router, useRouter } from "expo-router";
 import { Plus, Search, User, UserPlus, Users } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
 import {
@@ -27,12 +28,25 @@ export default function GroupsScreen() {
     const { user } = useAuth();
     const { showAlert } = useAlert();
     const { isRefreshing, setIsRefreshing } = useRefresh();
+    const route = useRoute<
+        RouteProp<
+            Record<
+                string,
+                {
+                    activeTab: string;
+                    userId: number;
+                }
+            >
+        >
+    >();
 
     const [searchQuery, setSearchQuery] = useState("");
     const [groupList, setGroupList] = useState<GroupType[]>([]);
     const [friendList, setFriendList] = useState<UserType[]>([]);
     const [friendRequestList, setFriendRequestList] = useState<UserType[]>([]);
-    const [activeTab, setActiveTab] = useState("groups"); // 'groups' or 'friends' or 'requests'
+    const [activeTab, setActiveTab] = useState(
+        route.params?.activeTab || "groups"
+    ); // 'groups' or 'friends' or 'requests'
     const [addingtoFriends, setAddingtoFriends] = useState<number | null>(null);
 
     const filteredGroups = groupList.filter((group) =>

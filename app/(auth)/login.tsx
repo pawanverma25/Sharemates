@@ -16,16 +16,18 @@ import {
 
 export default function LoginScreen() {
     const { colors } = useTheme();
-    const { user, isLoading, signIn } = useAuth();
+    const { user, isLoading, signIn, error } = useAuth();
 
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const [invalidFieldError, setInvalidFieldError] = useState<string | null>(
+        null
+    );
 
     const handleLogin = () => {
         if (!email || !password) {
-            setError("Please fill in all fields");
+            setInvalidFieldError("Please fill in all fields");
             return;
         }
         signIn(email, password);
@@ -34,6 +36,12 @@ export default function LoginScreen() {
     useEffect(() => {
         if (user) router.replace("/dashboard" as RelativePathString);
     }, []);
+
+    useEffect(() => {
+        if (error) {
+            setInvalidFieldError(error);
+        }
+    }, [error]);
 
     const styles = StyleSheet.create({
         container: {
@@ -150,7 +158,11 @@ export default function LoginScreen() {
                 </View>
 
                 <View style={styles.formContainer}>
-                    {error && <Text style={styles.errorText}>{error}</Text>}
+                    {invalidFieldError && (
+                        <Text style={styles.errorText}>
+                            {invalidFieldError}
+                        </Text>
+                    )}
 
                     <View style={styles.inputContainer}>
                         <Text style={styles.label}>Email</Text>
@@ -189,13 +201,13 @@ export default function LoginScreen() {
                         </View>
                     </View>
 
-                    <Link href="/forgot-password" asChild>
+                    {/* <Link href="/forgot-password" asChild>
                         <TouchableOpacity>
                             <Text style={styles.forgotPassword}>
                                 Forgot password?
                             </Text>
                         </TouchableOpacity>
-                    </Link>
+                    </Link> */}
 
                     <TouchableOpacity
                         style={styles.loginButton}

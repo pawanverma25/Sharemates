@@ -1,11 +1,13 @@
 import { useAlert } from "@/context/AlertContext";
 import { useAuth } from "@/context/AuthContext";
+import { useNotification } from "@/context/NotificationContext";
 import { useRefresh } from "@/context/RefreshContext";
 import { useTheme } from "@/context/ThemeContext";
 import { BalanceType } from "@/definitions/balance";
 import { ExpenseType } from "@/definitions/expense";
 import { dashboardService } from "@/services/dashboardService";
 import { expensesService } from "@/services/expensesService";
+import { userService } from "@/services/userService";
 import { formatCurrency, formatDate } from "@/util/commonFunctions";
 import { RelativePathString, router, useFocusEffect } from "expo-router";
 import {
@@ -17,6 +19,7 @@ import {
 } from "lucide-react-native";
 import { useCallback, useEffect, useState } from "react";
 import {
+    Button,
     RefreshControl,
     ScrollView,
     StyleSheet,
@@ -30,6 +33,7 @@ export default function DashboardScreen() {
     const { user } = useAuth();
     const { showAlert } = useAlert();
     const { isRefreshing, setIsRefreshing } = useRefresh();
+    const { expoPushToken } = useNotification();
 
     const [balances, setBalances] = useState<BalanceType[]>([]);
     const [expenses, setExpenses] = useState<ExpenseType[]>([]);
@@ -70,6 +74,12 @@ export default function DashboardScreen() {
                 .catch((error) => {
                     showAlert("Error", error);
                 }),
+            expoPushToken &&
+                userService
+                    .updateUserPushToken(user?.id ?? -1, expoPushToken)
+                    .catch((error) => {
+                        showAlert("Error", error);
+                    }),
         ])
             .then(() => {
                 setIsRefreshing(false);
