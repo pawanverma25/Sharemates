@@ -1,6 +1,6 @@
 import { useAlert } from "@/context/AlertContext";
 import { useAuth } from "@/context/AuthContext";
-import { useRefresh } from "@/context/RefreshContext";
+import { useActivity } from "@/context/ActivityContext";
 import { useTheme } from "@/context/ThemeContext";
 import { FriendType } from "@/definitions/friend";
 import { GroupType } from "@/definitions/group";
@@ -27,7 +27,7 @@ export default function GroupsScreen() {
     const { colors } = useTheme();
     const { user } = useAuth();
     const { showAlert } = useAlert();
-    const { isRefreshing, setIsRefreshing } = useRefresh();
+    const { isRefreshing, setIsRefreshing } = useActivity();
     const route = useRoute<
         RouteProp<
             Record<

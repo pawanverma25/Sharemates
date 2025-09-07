@@ -34,4 +34,25 @@ export const groupService = {
             );
         }
     },
+    async createGroup(
+        userId: number,
+        name: string,
+        description: string,
+        friendIdList: number[]
+    ) {
+        try {
+            const response = await apiClient.post(`/createGroup`, {
+                createdBy: userId,
+                name,
+                description,
+                friendIdList,
+            });
+            return response.data;
+        } catch (error: any) {
+            throw (
+                error.response?.data ||
+                "Couldn't create a group: " + error.message
+            );
+        }
+    },
 };

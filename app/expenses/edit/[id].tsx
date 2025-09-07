@@ -1,6 +1,6 @@
 import { useAlert } from "@/context/AlertContext";
 import { useAuth } from "@/context/AuthContext";
-import { useRefresh } from "@/context/RefreshContext";
+import { useActivity } from "@/context/ActivityContext";
 import { useTheme } from "@/context/ThemeContext";
 import {
     ExpenseRequestType,
@@ -47,7 +47,7 @@ export default function EditExpenseScreen() {
         >
     >();
     const { colors } = useTheme();
-    const { isRefreshing, setIsRefreshing } = useRefresh();
+    const { isRefreshing, setIsRefreshing } = useActivity();
     const { user } = useAuth();
     const { showAlert } = useAlert();
 

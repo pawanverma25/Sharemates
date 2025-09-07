@@ -1,7 +1,7 @@
 import { useAlert } from "@/context/AlertContext";
 import { useAuth } from "@/context/AuthContext";
 import { useNotification } from "@/context/NotificationContext";
-import { useRefresh } from "@/context/RefreshContext";
+import { useActivity } from "@/context/ActivityContext";
 import { useTheme } from "@/context/ThemeContext";
 import { BalanceType } from "@/definitions/balance";
 import { ExpenseType } from "@/definitions/expense";
@@ -32,7 +32,7 @@ export default function DashboardScreen() {
     const { colors } = useTheme();
     const { user } = useAuth();
     const { showAlert } = useAlert();
-    const { isRefreshing, setIsRefreshing } = useRefresh();
+    const { isRefreshing, setIsRefreshing } = useActivity();
     const { expoPushToken } = useNotification();
 
     const [balances, setBalances] = useState<BalanceType[]>([]);

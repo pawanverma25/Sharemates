@@ -1,110 +1,79 @@
-import { useState } from "react";
-import {
-    View,
-    Text,
-    StyleSheet,
-    ScrollView,
-    TouchableOpacity,
-    Image,
-} from "react-native";
-import { useLocalSearchParams, router } from "expo-router";
-import { useTheme } from "../../context/ThemeContext";
+import React, { useEffect, useState } from "react";
+import { formatCurrency, formatDate } from "@/util/commonFunctions";
+import { RelativePathString, router, useLocalSearchParams } from "expo-router";
 import {
     ArrowLeft,
-    Users,
-    Settings,
-    UserPlus,
-    CirclePlus as PlusCircle,
     ArrowRight,
-    DollarSign,
-    TrendingUp,
+    PencilLineIcon,
+    CirclePlus as PlusCircle,
     TrendingDown,
+    TrendingUp,
+    UserPlus,
 } from "lucide-react-native";
-import CustomAlert from "../../components/ui/Alert";
+import {
+    Image,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+} from "react-native";
+import { groupService } from "@/services/groupsService";
+import { useTheme } from "../../context/ThemeContext";
+import { useActivity } from "@/context/ActivityContext";
+import { GroupType } from "@/definitions/group";
+import { ExpenseType } from "@/definitions/expense";
+import { UserType } from "@/definitions/User";
 
-// Mock data for the group details
-const mockGroupDetails = {
-    id: "1",
-    name: "Trip to Paris",
-    totalBalance: 450.75,
-    members: [
-        {
-            id: 1,
-            name: "You",
-            balance: 150.25,
-            isOwed: true,
-            avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&fit=crop",
-        },
-        {
-            id: 2,
-            name: "John Doe",
-            balance: 75.5,
-            isOwed: false,
-            avatar: "https://images.unsplash.com/photo-1599566150163-29194dcaad36?w=100&fit=crop",
-        },
-        {
-            id: 3,
-            name: "Jane Smith",
-            balance: 125.0,
-            isOwed: true,
-            avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&fit=crop",
-        },
-        {
-            id: 4,
-            name: "Mike Johnson",
-            balance: 100.0,
-            isOwed: false,
-            avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&fit=crop",
-        },
-    ],
-    recentExpenses: [
-        {
-            id: 1,
-            description: "Hotel Booking",
-            amount: 250.0,
-            date: "2024-02-15",
-            paidBy: "You",
-        },
-        {
-            id: 2,
-            description: "Dinner at Le Petit",
-            amount: 120.75,
-            date: "2024-02-14",
-            paidBy: "John Doe",
-        },
-        {
-            id: 3,
-            description: "Metro Tickets",
-            amount: 80.0,
-            date: "2024-02-13",
-            paidBy: "Jane Smith",
-        },
-    ],
+// EXTENDED TYPES FOR GROUP PAGE
+export type GroupMemberType = UserType & {
+    avatar: string;
+    isOwed: boolean;
+    balance: number;
+};
+
+export type GroupDetailsType = GroupType & {
+    members: GroupMemberType[];
+    totalBalance: number;
+    recentExpenses: ExpenseType[];
 };
 
 export default function GroupDetailsScreen() {
     const { colors } = useTheme();
     const { id } = useLocalSearchParams();
-    const [showLeaveAlert, setShowLeaveAlert] = useState(false);
-    const [showDeleteAlert, setShowDeleteAlert] = useState(false);
+    const { isRefreshing, setIsRefreshing, isLoading, setIsLoading } =
+        useActivity();
+    const [group, setGroup] = useState<GroupDetailsType | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [showFriendSelector, setShowFriendSelector] = useState(false);
+    const [selectedFriends, setSelectedFriends] = useState<number[]>([]);
 
-    // In a real app, fetch group details using the ID
-    const group = mockGroupDetails;
-
-    const formatCurrency = (amount: number) => {
-        return `$${amount.toFixed(2)}`;
+    const fetchGroupDetails = async () => {
+        setLoading(true);
+        setIsLoading(true);
+        try {
+            const details = await groupService.getGroupDetails(Number(id));
+            setGroup(details);
+        } catch (error) {
+            setGroup(null);
+        } finally {
+            setLoading(false);
+            setIsLoading(false);
+        }
     };
 
-    const formatDate = (dateString: string) => {
-        const date = new Date(dateString);
-        return date.toLocaleDateString("en-US", {
-            month: "short",
-            day: "numeric",
-        });
+    useEffect(() => {
+        fetchGroupDetails();
+    }, [id, isRefreshing]);
+
+    const handleRefresh = () => {
+        setIsRefreshing(true);
+        fetchGroupDetails().finally(() => setIsRefreshing(false));
     };
 
     const handleAddMember = () => {
-        router.push(`/groups/${id}/add-member`);
+        setShowFriendSelector(true);
     };
 
     const handleAddExpense = () => {
@@ -115,12 +84,12 @@ export default function GroupDetailsScreen() {
         router.push("/expenses/settle");
     };
 
-    const handleLeaveGroup = () => {
-        setShowLeaveAlert(true);
-    };
-
-    const handleDeleteGroup = () => {
-        setShowDeleteAlert(true);
+    const toggleFriendSelection = (friendId: number) => {
+        if (selectedFriends.includes(friendId)) {
+            setSelectedFriends(selectedFriends.filter((id) => id !== friendId));
+        } else {
+            setSelectedFriends([...selectedFriends, friendId]);
+        }
     };
 
     const styles = StyleSheet.create({
@@ -345,6 +314,10 @@ export default function GroupDetailsScreen() {
             color: "#fff",
         },
     });
+    if (!group) {
+        router.replace("/dashboard" as RelativePathString);
+        return null;
+    }
 
     return (
         <View style={styles.container}>
@@ -360,7 +333,7 @@ export default function GroupDetailsScreen() {
                         style={styles.settingsButton}
                         onPress={() => router.push(`/groups/${id}/settings`)}
                     >
-                        <Settings size={24} color={colors.text} />
+                        <PencilLineIcon size={24} color={colors.text} />
                     </TouchableOpacity>
                 </View>
                 <View style={styles.headerContent}>
@@ -371,7 +344,14 @@ export default function GroupDetailsScreen() {
                 </View>
             </View>
 
-            <ScrollView>
+            <ScrollView
+                refreshControl={
+                    <RefreshControl
+                        refreshing={isRefreshing}
+                        onRefresh={handleRefresh}
+                    />
+                }
+            >
                 <View style={styles.balanceSummary}>
                     <View style={styles.totalBalance}>
                         <Text style={styles.balanceAmount}>
@@ -436,7 +416,7 @@ export default function GroupDetailsScreen() {
                             <Text style={styles.actionButtonText}>Add</Text>
                         </TouchableOpacity>
                     </View>
-                    {group.members.map((member) => (
+                    {group.members.map((member: GroupMemberType) => (
                         <TouchableOpacity
                             key={member.id}
                             style={styles.memberItem}
@@ -488,7 +468,7 @@ export default function GroupDetailsScreen() {
                             <Text style={styles.actionButtonText}>Add</Text>
                         </TouchableOpacity>
                     </View>
-                    {group.recentExpenses.map((expense) => (
+                    {group.recentExpenses.map((expense: ExpenseType) => (
                         <TouchableOpacity
                             key={expense.id}
                             style={styles.expenseItem}
@@ -502,12 +482,17 @@ export default function GroupDetailsScreen() {
                                 </Text>
                                 <View style={styles.expenseDetails}>
                                     <Text style={styles.expenseDate}>
-                                        {formatDate(expense.date)}
+                                        {formatDate(expense.createdDate)}
                                     </Text>
                                     <Text style={styles.expensePaidBy}>
-                                        {expense.paidBy === "You"
+                                        {expense.paidBy &&
+                                        expense.paidBy.id ===
+                                            group?.members.find(
+                                                (m) =>
+                                                    m.id === expense.paidBy.id
+                                            )?.id
                                             ? "You paid"
-                                            : `${expense.paidBy} paid`}
+                                            : `${expense.paidBy?.name} paid`}
                                     </Text>
                                 </View>
                             </View>
@@ -522,63 +507,96 @@ export default function GroupDetailsScreen() {
                         </TouchableOpacity>
                     ))}
                 </View>
-
-                <TouchableOpacity
-                    style={styles.settleButton}
-                    onPress={handleSettleUp}
-                >
-                    <Text style={styles.settleButtonText}>Settle Up</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                    style={styles.dangerButton}
-                    onPress={handleLeaveGroup}
-                >
-                    <Text style={styles.dangerButtonText}>Leave Group</Text>
-                </TouchableOpacity>
             </ScrollView>
-
-            <CustomAlert
-                visible={showLeaveAlert}
-                title="Leave Group"
-                message="Are you sure you want to leave this group? You won't be able to see any expenses or activity after leaving."
-                buttons={[
-                    {
-                        text: "Cancel",
-                        style: "cancel",
-                        onPress: () => setShowLeaveAlert(false),
-                    },
-                    {
-                        text: "Leave",
-                        style: "destructive",
-                        onPress: () => {
-                            setShowLeaveAlert(false);
-                            router.back();
-                        },
-                    },
-                ]}
-            />
-
-            <CustomAlert
-                visible={showDeleteAlert}
-                title="Delete Group"
-                message="Are you sure you want to delete this group? This action cannot be undone."
-                buttons={[
-                    {
-                        text: "Cancel",
-                        style: "cancel",
-                        onPress: () => setShowDeleteAlert(false),
-                    },
-                    {
-                        text: "Delete",
-                        style: "destructive",
-                        onPress: () => {
-                            setShowDeleteAlert(false);
-                            router.back();
-                        },
-                    },
-                ]}
-            />
+            {showFriendSelector && (
+                <View
+                    style={{
+                        position: "absolute",
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        backgroundColor: "rgba(0,0,0,0.5)",
+                        justifyContent: "center",
+                        alignItems: "center",
+                    }}
+                >
+                    <View
+                        style={{
+                            backgroundColor: colors.card,
+                            borderRadius: 16,
+                            padding: 24,
+                            width: "80%",
+                            maxHeight: "70%",
+                        }}
+                    >
+                        <Text
+                            style={{
+                                fontFamily: "Inter-SemiBold",
+                                fontSize: 18,
+                                marginBottom: 16,
+                            }}
+                        >
+                            Select Friends to Add
+                        </Text>
+                        <ScrollView style={{ maxHeight: 300 }}>
+                            {/* Replace with your friends list */}
+                            {[
+                                { id: 1, name: "John Doe" },
+                                { id: 2, name: "Jane Smith" },
+                                { id: 3, name: "Mike Johnson" },
+                            ].map((friend) => (
+                                <TouchableOpacity
+                                    key={friend.id}
+                                    style={{
+                                        flexDirection: "row",
+                                        alignItems: "center",
+                                        paddingVertical: 12,
+                                    }}
+                                    onPress={() =>
+                                        toggleFriendSelection(friend.id)
+                                    }
+                                >
+                                    <Text style={{ flex: 1, fontSize: 16 }}>
+                                        {friend.name}
+                                    </Text>
+                                    {selectedFriends.includes(friend.id) && (
+                                        <View
+                                            style={{
+                                                width: 20,
+                                                height: 20,
+                                                borderRadius: 10,
+                                                backgroundColor: colors.primary,
+                                                marginLeft: 8,
+                                            }}
+                                        />
+                                    )}
+                                </TouchableOpacity>
+                            ))}
+                        </ScrollView>
+                        <TouchableOpacity
+                            style={{
+                                marginTop: 24,
+                                backgroundColor: colors.primary,
+                                borderRadius: 8,
+                                padding: 12,
+                                alignItems: "center",
+                            }}
+                            onPress={() => setShowFriendSelector(false)}
+                        >
+                            <Text
+                                style={{
+                                    color: "#fff",
+                                    fontFamily: "Inter-SemiBold",
+                                    fontSize: 16,
+                                }}
+                            >
+                                Done
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            )}
         </View>
     );
 }

@@ -1,6 +1,6 @@
 import { useAlert } from "@/context/AlertContext";
 import { useAuth } from "@/context/AuthContext";
-import { useRefresh } from "@/context/RefreshContext";
+import { useActivity } from "@/context/ActivityContext";
 import { useTheme } from "@/context/ThemeContext";
 import { ExpenseType } from "@/definitions/expense";
 import { expensesService } from "@/services/expensesService";
@@ -22,7 +22,7 @@ export default function ExpensesScreen() {
     const { user } = useAuth();
     const { colors } = useTheme();
     const { showAlert } = useAlert();
-    const { isRefreshing, setIsRefreshing } = useRefresh();
+    const { isRefreshing, setIsRefreshing } = useActivity();
     const [searchQuery, setSearchQuery] = useState("");
     const [filterVisible, setFilterVisible] = useState(false);
     const [expenses, setExpenses] = useState<ExpenseType[]>([]);

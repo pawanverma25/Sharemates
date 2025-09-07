@@ -1,6 +1,6 @@
 import { useAlert } from "@/context/AlertContext";
 import { useAuth } from "@/context/AuthContext";
-import { useRefresh } from "@/context/RefreshContext";
+import { useActivity } from "@/context/ActivityContext";
 import { useTheme } from "@/context/ThemeContext";
 import { ExpenseRequestType, participantType } from "@/definitions/expense";
 import { GroupType } from "@/definitions/group";
@@ -29,16 +29,20 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
-import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import DateTimePicker, {
+    DateTimePickerEvent,
+} from "@react-native-community/datetimepicker";
 
 export default function AddExpenseScreen() {
     const { colors } = useTheme();
-    const { isRefreshing, setIsRefreshing } = useRefresh();
+    const { isRefreshing, setIsRefreshing } = useActivity();
     const { user } = useAuth();
     const { showAlert } = useAlert();
 
     const [groupList, setGroupList] = useState<GroupType[]>([]);
-    const [friendList, setFriendList] = useState<UserType[]>(user ? [user] : []);
+    const [friendList, setFriendList] = useState<UserType[]>(
+        user ? [user] : []
+    );
     const [description, setDescription] = useState("");
     const [amount, setAmount] = useState<string>("");
     const [date, setDate] = useState<Date>(new Date());
@@ -50,7 +54,9 @@ export default function AddExpenseScreen() {
     const [showFriendSelector, setShowFriendSelector] = useState(false);
     const [showPaidBySelector, setShowPaidBySelector] = useState(false);
     const [showDatePicker, setShowDatePicker] = useState(false);
-    const [friendSplits, setFriendSplits] = useState<Record<number, number>>({});
+    const [friendSplits, setFriendSplits] = useState<Record<number, number>>(
+        {}
+    );
 
     const handleSave = async () => {
         if (!description || !amount) {
@@ -66,13 +72,25 @@ export default function AddExpenseScreen() {
             showAlert("Error", "Please select who paid for the expense");
             return;
         }
-        if(splitType === "EXACT" || splitType === "PERCENTAGE") {
-            const totalSplitAmount = Object.values(friendSplits).reduce((sum, amt) => sum + amt, 0);
-            if  (totalSplitAmount !== parseFloat(amount) && splitType === "EXACT") {
-                showAlert("Error", "Total split amounts must equal the expense amount");
+        if (splitType === "EXACT" || splitType === "PERCENTAGE") {
+            const totalSplitAmount = Object.values(friendSplits).reduce(
+                (sum, amt) => sum + amt,
+                0
+            );
+            if (
+                totalSplitAmount !== parseFloat(amount) &&
+                splitType === "EXACT"
+            ) {
+                showAlert(
+                    "Error",
+                    "Total split amounts must equal the expense amount"
+                );
                 return;
             }
-            if( Math.abs(totalSplitAmount - 100) > 0.01 && splitType === "PERCENTAGE") {
+            if (
+                Math.abs(totalSplitAmount - 100) > 0.01 &&
+                splitType === "PERCENTAGE"
+            ) {
                 showAlert("Error", "Total percentage must equal 100%");
                 return;
             }
@@ -86,7 +104,10 @@ export default function AddExpenseScreen() {
                 amount: totalAmount / selectedFriends.length,
             }));
         } else if (splitType === "PERCENTAGE") {
-            const totalPercentage = Object.values(friendSplits).reduce((sum, percent) => sum + percent, 0);
+            const totalPercentage = Object.values(friendSplits).reduce(
+                (sum, percent) => sum + percent,
+                0
+            );
             if (Math.abs(totalPercentage - 100) > 0.01) {
                 showAlert("Error", "Total percentage must equal 100%");
                 return;
@@ -96,9 +117,15 @@ export default function AddExpenseScreen() {
                 amount: (totalAmount * friendSplits[friendId]) / 100,
             }));
         } else if (splitType === "EXACT") {
-            const totalSplitAmount = Object.values(friendSplits).reduce((sum, amt) => sum + amt, 0);
+            const totalSplitAmount = Object.values(friendSplits).reduce(
+                (sum, amt) => sum + amt,
+                0
+            );
             if (Math.abs(totalSplitAmount - totalAmount) !== 0) {
-                showAlert("Error", "Total split amounts must equal the expense amount");
+                showAlert(
+                    "Error",
+                    "Total split amounts must equal the expense amount"
+                );
                 return;
             }
             participants = selectedFriends.map((friendId) => ({
@@ -106,7 +133,8 @@ export default function AddExpenseScreen() {
                 amount: friendSplits[friendId],
             }));
         }
-        if(participants.filter((p) => p.id === paidBy?.id).length === 0) participants.push({ id: paidBy?.id ?? -1, amount: 0 });
+        if (participants.filter((p) => p.id === paidBy?.id).length === 0)
+            participants.push({ id: paidBy?.id ?? -1, amount: 0 });
 
         const expenseSaved = await expensesService.addExpenses({
             description: description,
@@ -220,8 +248,11 @@ export default function AddExpenseScreen() {
 
     const handleSplitChange = (friendId: number, value: string) => {
         const numValue = parseFloat(value);
-        if(splitType == "PERCENTAGE" && (isNaN(numValue) || numValue < 0 || numValue > 100)) {
-            showAlert("Error", "Percentage must be between 0 and 100"); 
+        if (
+            splitType == "PERCENTAGE" &&
+            (isNaN(numValue) || numValue < 0 || numValue > 100)
+        ) {
+            showAlert("Error", "Percentage must be between 0 and 100");
             return;
         }
         setFriendSplits({
@@ -685,11 +716,14 @@ export default function AddExpenseScreen() {
                     {splitType === "PERCENTAGE" && (
                         <View>
                             <Text style={styles.splitDescription}>
-                                Specify what percentage of the total each person should pay.
+                                Specify what percentage of the total each person
+                                should pay.
                             </Text>
                             <View style={styles.splitInputsContainer}>
                                 {selectedFriends.map((friendId) => {
-                                    const friend = friendList.find((f) => f.id === friendId);
+                                    const friend = friendList.find(
+                                        (f) => f.id === friendId
+                                    );
                                     return (
                                         <View
                                             key={friendId}
@@ -743,10 +777,20 @@ export default function AddExpenseScreen() {
                             </Text>
                             <View style={styles.splitInputsContainer}>
                                 {selectedFriends.map((friendId) => {
-                                    const friend = friendList.find((f) => f.id === friendId);
+                                    const friend = friendList.find(
+                                        (f) => f.id === friendId
+                                    );
                                     return (
-                                        <View key={friendId} style={styles.splitInputRow}>
-                                            <Text style={styles.splitInputLabel}> {friend?.name}</Text>
+                                        <View
+                                            key={friendId}
+                                            style={styles.splitInputRow}
+                                        >
+                                            <Text
+                                                style={styles.splitInputLabel}
+                                            >
+                                                {" "}
+                                                {friend?.name}
+                                            </Text>
                                             <View
                                                 style={
                                                     styles.splitAmountInputContainer
@@ -882,9 +926,7 @@ export default function AddExpenseScreen() {
                                 <TouchableOpacity
                                     key={friend.id}
                                     style={styles.modalItem}
-                                    onPress={() =>
-                                        setPaidBy(friend)
-                                    }
+                                    onPress={() => setPaidBy(friend)}
                                 >
                                     <Text style={styles.modalItemText}>
                                         {friend.name}

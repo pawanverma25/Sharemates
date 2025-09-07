@@ -1,6 +1,6 @@
+import { ActivityContextProvider } from "@/context/ActivityContext";
 import { AlertProvider } from "@/context/AlertContext";
 import { PreferencesContextProvider } from "@/context/PreferencesContext";
-import { RefreshProvider } from "@/context/RefreshContext";
 import {
     Inter_400Regular,
     Inter_500Medium,
@@ -8,13 +8,13 @@ import {
     Inter_700Bold,
     useFonts,
 } from "@expo-google-fonts/inter";
+import * as Notifications from "expo-notifications";
 import { SplashScreen, Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import { AuthProvider } from "../context/AuthContext";
 import { NotificationProvider } from "../context/NotificationContext";
 import { ThemeProvider } from "../context/ThemeContext";
-import * as Notifications from "expo-notifications";
 
 Notifications.setNotificationHandler({
     handleNotification: async () => ({
@@ -60,7 +60,7 @@ export default function RootLayout() {
                 <AuthProvider>
                     <NotificationProvider>
                         <AlertProvider>
-                            <RefreshProvider>
+                            <ActivityContextProvider>
                                 <Stack screenOptions={{ headerShown: false }}>
                                     <Stack.Screen
                                         name="(auth)"
@@ -76,7 +76,7 @@ export default function RootLayout() {
                                     />
                                 </Stack>
                                 <StatusBar style="auto" />
-                            </RefreshProvider>
+                            </ActivityContextProvider>
                         </AlertProvider>
                     </NotificationProvider>
                 </AuthProvider>
