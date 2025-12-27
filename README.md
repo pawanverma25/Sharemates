@@ -30,7 +30,6 @@ Sharemates is a social expense management app that lets groups track shared expe
 ## Features
 
 -   Create groups and add friends
--   Scan receipts (OCR via tesseract.js integration)
 -   Track expenses and settlements
 -   Push notifications and in-app alerts
 -   Offline-friendly, secure storage via Expo Secure Store
@@ -39,9 +38,8 @@ Sharemates is a social expense management app that lets groups track shared expe
 
 -   Expo (Router) + React Native
 -   TypeScript
--   Firebase (Auth, Cloud Messaging)
+-   Firebase (Cloud Messaging)
 -   Expo modules: Notifications, Image Picker, Secure Store, Splash Screen
--   Tesseract.js for OCR
 
 ## Getting Started
 
