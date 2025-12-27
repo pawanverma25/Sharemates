@@ -1,3 +1,4 @@
+import { get } from "react-native/Libraries/TurboModule/TurboModuleRegistry";
 import apiClient from "./apiClient";
 
 export const groupService = {
@@ -31,6 +32,19 @@ export const groupService = {
             throw (
                 error.response?.data ||
                 "Couldn't fetch groups List: " + error.message
+            );
+        }
+    },
+    async getGroupExpenses(groupId: number) {
+        try {
+            const response = await apiClient.get(
+                `/getGroupExpenses/${groupId}`
+            );
+            return response.data;
+        } catch (error: any) {
+            throw (
+                error.response?.data ||
+                "Couldn't fetch recent expenses: " + error.message
             );
         }
     },

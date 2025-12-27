@@ -21,15 +21,15 @@ export default function Index() {
                     storageService.getItemAsync("lastLogin"),
                 ]);
             if (user && tokenExpiry && userCredentials && lastLogin) {
-                if (
-                    new Date(Number(tokenExpiry) + Number(lastLogin)) <
-                    new Date(Date.now())
-                ) {
-                    const { email, password } = JSON.parse(userCredentials);
-                    signIn(email, password);
-                } else {
-                    signInAuto();
-                }
+                // if (
+                //     new Date(Number(tokenExpiry) + Number(lastLogin)) <
+                //     new Date(Date.now())
+                // ) {
+                const { email, password } = JSON.parse(userCredentials);
+                signIn(email, password);
+                // } else {
+                //     signInAuto();
+                // }
             } else {
                 router.replace("/login" as RelativePathString);
             }
@@ -47,8 +47,7 @@ export default function Index() {
                 alignItems: "center",
                 backgroundColor: colors.background,
                 gap: 10,
-            }}
-        >
+            }}>
             <ActivityIndicator size="large" color={colors.primary} />
             <Text style={{ color: colors.text }}>Loading...</Text>
             <Text style={{ color: colors.text, marginTop: 10 }}>

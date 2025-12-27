@@ -1,8 +1,8 @@
+import { useActivity } from "@/context/ActivityContext";
 import { useAlert } from "@/context/AlertContext";
 import { useAuth } from "@/context/AuthContext";
-import { useActivity } from "@/context/ActivityContext";
 import { useTheme } from "@/context/ThemeContext";
-import { ExpenseRequestType, participantType } from "@/definitions/expense";
+import { ExpenseRequestType, ParticipantType } from "@/definitions/expense";
 import { GroupType } from "@/definitions/group";
 import { UserType } from "@/definitions/User";
 import { expensesService } from "@/services/expensesService";
@@ -14,14 +14,12 @@ import {
     Calendar,
     DollarSign,
     Percent,
-    Receipt,
     Users,
     X,
 } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
 import {
     KeyboardAvoidingView,
-    RefreshControl,
     ScrollView,
     StyleSheet,
     Text,
@@ -29,13 +27,10 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
-import DateTimePicker, {
-    DateTimePickerEvent,
-} from "@react-native-community/datetimepicker";
 
 export default function AddExpenseScreen() {
     const { colors } = useTheme();
-    const { isRefreshing, setIsRefreshing } = useActivity();
+    const { isRefreshing, setIsRefreshing, isLoading, setIsLoading } = useActivity();
     const { user } = useAuth();
     const { showAlert } = useAlert();
 
@@ -96,7 +91,7 @@ export default function AddExpenseScreen() {
             }
         }
         const totalAmount = parseFloat(amount);
-        let participants: participantType[] = [];
+        let participants: ParticipantType[] = [];
 
         if (splitType === "EQUAL") {
             participants = selectedFriends.map((friendId) => ({
@@ -136,21 +131,28 @@ export default function AddExpenseScreen() {
         if (participants.filter((p) => p.id === paidBy?.id).length === 0)
             participants.push({ id: paidBy?.id ?? -1, amount: 0 });
 
-        const expenseSaved = await expensesService.addExpenses({
-            description: description,
-            createdDate: date.toISOString().split("T")[0],
-            paidBy: paidBy?.id,
-            groupId: selectedGroup,
-            createdBy: user?.id,
-            amount: totalAmount,
-            splitType: splitType,
-            participants: participants,
-        } as ExpenseRequestType);
-        if (expenseSaved)
-            showAlert("Success", "Expense added successfully", () =>
-                router.back()
-            );
-        else showAlert("Error", "Something went wrong", () => router.back());
+        try {
+            setIsLoading(true);
+            const expenseSaved = await expensesService.addExpenses({
+                description: description,
+                createdDate: date.toISOString().split("T")[0],
+                paidBy: paidBy?.id,
+                groupId: selectedGroup,
+                createdBy: user?.id,
+                amount: totalAmount,
+                splitType: splitType,
+                participants: participants,
+            } as ExpenseRequestType);
+            setIsLoading(false);
+            if (expenseSaved)
+                showAlert("Success", "Expense added successfully", () =>
+                    router.back()
+                );
+            else showAlert("Error", "Something went wrong", () => router.back());
+        } catch (error) {
+            setIsLoading(false);
+            showAlert("Error", "Failed to save expense", () => router.back());
+        }
     };
 
     const toggleFriendSelection = (friendId: number) => {
@@ -175,16 +177,6 @@ export default function AddExpenseScreen() {
         }
     };
 
-    const selectGroup = (groupId: number) => {
-        setSelectedGroup(groupId);
-        // When a group is selected, automatically select all its members
-        const group = groupList.find((g) => g.id === groupId);
-        if (group) {
-            setSelectedFriends(friendList.map((member) => member.id));
-        }
-        setShowGroupSelector(false);
-    };
-
     const getSelectedGroupName = () => {
         const group = groupList.find((g) => g.id === selectedGroup);
         return group ? group.name : "Non-group Expense";
@@ -207,7 +199,7 @@ export default function AddExpenseScreen() {
             friendsService
                 .getFriends(user?.id ?? -1)
                 .then((res) => {
-                    setFriendList(res);
+                    setFriendList([user, ...res]);
                 })
                 .catch((error) => {
                     showAlert("Error", error);
@@ -235,6 +227,10 @@ export default function AddExpenseScreen() {
                 .getMembers(selectedGroup)
                 .then((res) => {
                     setFriendList(res);
+                    setSelectedFriends(
+                        res.map((member: UserType) => member.id)
+                    );
+                    setShowGroupSelector(false);
                 })
                 .catch((error) => {
                     showAlert("Error", error);
@@ -521,15 +517,13 @@ export default function AddExpenseScreen() {
             <View style={styles.header}>
                 <TouchableOpacity
                     style={styles.backButton}
-                    onPress={() => router.back()}
-                >
+                    onPress={() => router.back()}>
                     <ArrowLeft size={24} color={colors.text} />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Add Expense</Text>
                 <TouchableOpacity
                     style={styles.saveButton}
-                    onPress={handleSave}
-                >
+                    onPress={handleSave}>
                     <Text style={styles.saveButtonText}>Save</Text>
                 </TouchableOpacity>
             </View>
@@ -568,8 +562,7 @@ export default function AddExpenseScreen() {
                         <Text style={styles.label}>Date</Text>
                         <TouchableOpacity
                             style={styles.selectorButton}
-                            onPress={() => setShowDatePicker(true)}
-                        >
+                            onPress={() => setShowDatePicker(true)}>
                             <Calendar size={20} color={colors.secondaryText} />
                             <Text style={styles.selectorButtonText}>
                                 {date.toISOString().split("T")[0]}
@@ -585,8 +578,7 @@ export default function AddExpenseScreen() {
                         <Text style={styles.label}>Group</Text>
                         <TouchableOpacity
                             style={styles.selectorButton}
-                            onPress={() => setShowGroupSelector(true)}
-                        >
+                            onPress={() => setShowGroupSelector(true)}>
                             <Users size={20} color={colors.secondaryText} />
                             <Text style={styles.selectorButtonText}>
                                 {getSelectedGroupName()}
@@ -595,11 +587,10 @@ export default function AddExpenseScreen() {
                     </View>
 
                     <View style={styles.inputContainer}>
-                        <Text style={styles.label}>Friends</Text>
+                        <Text style={styles.label}>Split between</Text>
                         <TouchableOpacity
                             style={styles.selectorButton}
-                            onPress={() => setShowFriendSelector(true)}
-                        >
+                            onPress={() => setShowFriendSelector(true)}>
                             <Users size={20} color={colors.secondaryText} />
                             <Text style={styles.selectorButtonText}>
                                 {getSelectedFriendsText()}
@@ -610,8 +601,7 @@ export default function AddExpenseScreen() {
                         <Text style={styles.label}>Paid By</Text>
                         <TouchableOpacity
                             style={styles.selectorButton}
-                            onPress={() => setShowPaidBySelector(true)}
-                        >
+                            onPress={() => setShowPaidBySelector(true)}>
                             <Users size={20} color={colors.secondaryText} />
                             <Text style={styles.selectorButtonText}>
                                 {paidBy ? paidBy.name : "Select payer"}
@@ -630,8 +620,7 @@ export default function AddExpenseScreen() {
                                 splitType === "EQUAL" &&
                                     styles.activeSplitTypeButton,
                             ]}
-                            onPress={() => setSplitType("EQUAL")}
-                        >
+                            onPress={() => setSplitType("EQUAL")}>
                             <DollarSign
                                 size={20}
                                 color={
@@ -645,8 +634,7 @@ export default function AddExpenseScreen() {
                                     styles.splitTypeText,
                                     splitType === "EQUAL" &&
                                         styles.activeSplitTypeText,
-                                ]}
-                            >
+                                ]}>
                                 Equal
                             </Text>
                         </TouchableOpacity>
@@ -657,8 +645,7 @@ export default function AddExpenseScreen() {
                                 splitType === "PERCENTAGE" &&
                                     styles.activeSplitTypeButton,
                             ]}
-                            onPress={() => setSplitType("PERCENTAGE")}
-                        >
+                            onPress={() => setSplitType("PERCENTAGE")}>
                             <Percent
                                 size={20}
                                 color={
@@ -672,8 +659,7 @@ export default function AddExpenseScreen() {
                                     styles.splitTypeText,
                                     splitType === "PERCENTAGE" &&
                                         styles.activeSplitTypeText,
-                                ]}
-                            >
+                                ]}>
                                 Percentage
                             </Text>
                         </TouchableOpacity>
@@ -684,8 +670,7 @@ export default function AddExpenseScreen() {
                                 splitType === "EXACT" &&
                                     styles.activeSplitTypeButton,
                             ]}
-                            onPress={() => setSplitType("EXACT")}
-                        >
+                            onPress={() => setSplitType("EXACT")}>
                             <DollarSign
                                 size={20}
                                 color={
@@ -699,8 +684,7 @@ export default function AddExpenseScreen() {
                                     styles.splitTypeText,
                                     splitType === "EXACT" &&
                                         styles.activeSplitTypeText,
-                                ]}
-                            >
+                                ]}>
                                 Amount
                             </Text>
                         </TouchableOpacity>
@@ -720,28 +704,28 @@ export default function AddExpenseScreen() {
                                 should pay.
                             </Text>
                             <View style={styles.splitInputsContainer}>
-                                {selectedFriends.map((friendId) => {
+                                {selectedFriends.map((friendId, index) => {
                                     const friend = friendList.find(
                                         (f) => f.id === friendId
                                     );
                                     return (
                                         <View
-                                            key={friendId}
-                                            style={styles.splitInputRow}
-                                        >
+                                            key={friendId + index}
+                                            style={styles.splitInputRow}>
                                             <Text
-                                                style={styles.splitInputLabel}
-                                            >
+                                                style={styles.splitInputLabel}>
                                                 {friend?.name}
                                             </Text>
                                             <View
                                                 style={
                                                     styles.splitAmountInputContainer
-                                                }
-                                            >
+                                                }>
                                                 <TextInput
                                                     style={styles.amountInput}
                                                     placeholder="0.00"
+                                                    placeholderTextColor={
+                                                        colors.text
+                                                    }
                                                     keyboardType="decimal-pad"
                                                     value={
                                                         friendSplits[
@@ -758,8 +742,7 @@ export default function AddExpenseScreen() {
                                                 <Text
                                                     style={
                                                         styles.percentageSymbol
-                                                    }
-                                                >
+                                                    }>
                                                     %
                                                 </Text>
                                             </View>
@@ -776,36 +759,35 @@ export default function AddExpenseScreen() {
                                 Specify the exact amount each person should pay.
                             </Text>
                             <View style={styles.splitInputsContainer}>
-                                {selectedFriends.map((friendId) => {
+                                {selectedFriends.map((friendId, index) => {
                                     const friend = friendList.find(
                                         (f) => f.id === friendId
                                     );
                                     return (
                                         <View
-                                            key={friendId}
-                                            style={styles.splitInputRow}
-                                        >
+                                            key={friendId + index}
+                                            style={styles.splitInputRow}>
                                             <Text
-                                                style={styles.splitInputLabel}
-                                            >
+                                                style={styles.splitInputLabel}>
                                                 {" "}
                                                 {friend?.name}
                                             </Text>
                                             <View
                                                 style={
                                                     styles.splitAmountInputContainer
-                                                }
-                                            >
+                                                }>
                                                 <Text
                                                     style={
                                                         styles.currencySymbol
-                                                    }
-                                                >
+                                                    }>
                                                     ₹
                                                 </Text>
                                                 <TextInput
                                                     style={styles.amountInput}
                                                     placeholder="0.00"
+                                                    placeholderTextColor={
+                                                        colors.text
+                                                    }
                                                     keyboardType="decimal-pad"
                                                     value={
                                                         friendSplits[
@@ -837,8 +819,7 @@ export default function AddExpenseScreen() {
                                 Select a Group
                             </Text>
                             <TouchableOpacity
-                                onPress={() => setShowGroupSelector(false)}
-                            >
+                                onPress={() => setShowGroupSelector(false)}>
                                 <X size={24} color={colors.text} />
                             </TouchableOpacity>
                         </View>
@@ -848,8 +829,7 @@ export default function AddExpenseScreen() {
                                 <TouchableOpacity
                                     key={group.id}
                                     style={styles.modalItem}
-                                    onPress={() => selectGroup(group.id)}
-                                >
+                                    onPress={() => setSelectedGroup(group.id)}>
                                     <Text style={styles.modalItemText}>
                                         {group.name}
                                     </Text>
@@ -873,8 +853,7 @@ export default function AddExpenseScreen() {
                                 Select Friends
                             </Text>
                             <TouchableOpacity
-                                onPress={() => setShowFriendSelector(false)}
-                            >
+                                onPress={() => setShowFriendSelector(false)}>
                                 <X size={24} color={colors.text} />
                             </TouchableOpacity>
                         </View>
@@ -886,8 +865,7 @@ export default function AddExpenseScreen() {
                                     style={styles.modalItem}
                                     onPress={() =>
                                         toggleFriendSelection(friend.id)
-                                    }
-                                >
+                                    }>
                                     <Text style={styles.modalItemText}>
                                         {friend.name}
                                     </Text>
@@ -902,8 +880,7 @@ export default function AddExpenseScreen() {
 
                         <TouchableOpacity
                             style={styles.modalButton}
-                            onPress={() => setShowFriendSelector(false)}
-                        >
+                            onPress={() => setShowFriendSelector(false)}>
                             <Text style={styles.modalButtonText}>Done</Text>
                         </TouchableOpacity>
                     </View>
@@ -915,8 +892,7 @@ export default function AddExpenseScreen() {
                         <View style={styles.modalHeader}>
                             <Text style={styles.modalTitle}>Paid By</Text>
                             <TouchableOpacity
-                                onPress={() => setShowPaidBySelector(false)}
-                            >
+                                onPress={() => setShowPaidBySelector(false)}>
                                 <X size={24} color={colors.text} />
                             </TouchableOpacity>
                         </View>
@@ -926,8 +902,7 @@ export default function AddExpenseScreen() {
                                 <TouchableOpacity
                                     key={friend.id}
                                     style={styles.modalItem}
-                                    onPress={() => setPaidBy(friend)}
-                                >
+                                    onPress={() => setPaidBy(friend)}>
                                     <Text style={styles.modalItemText}>
                                         {friend.name}
                                     </Text>
@@ -942,8 +917,7 @@ export default function AddExpenseScreen() {
 
                         <TouchableOpacity
                             style={styles.modalButton}
-                            onPress={() => setShowPaidBySelector(false)}
-                        >
+                            onPress={() => setShowPaidBySelector(false)}>
                             <Text style={styles.modalButtonText}>Done</Text>
                         </TouchableOpacity>
                     </View>

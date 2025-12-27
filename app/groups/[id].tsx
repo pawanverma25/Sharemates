@@ -1,4 +1,8 @@
-import React, { useEffect, useState } from "react";
+import { useActivity } from "@/context/ActivityContext";
+import { ExpenseType } from "@/definitions/expense";
+import { GroupType } from "@/definitions/group";
+import { UserType } from "@/definitions/User";
+import { groupService } from "@/services/groupsService";
 import { formatCurrency, formatDate } from "@/util/commonFunctions";
 import { RelativePathString, router, useLocalSearchParams } from "expo-router";
 import {
@@ -8,10 +12,12 @@ import {
     CirclePlus as PlusCircle,
     TrendingDown,
     TrendingUp,
+    User,
     UserPlus,
+    X,
 } from "lucide-react-native";
+import React, { useEffect, useState } from "react";
 import {
-    Image,
     RefreshControl,
     ScrollView,
     StyleSheet,
@@ -19,42 +25,49 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
-import { groupService } from "@/services/groupsService";
 import { useTheme } from "../../context/ThemeContext";
-import { useActivity } from "@/context/ActivityContext";
-import { GroupType } from "@/definitions/group";
-import { ExpenseType } from "@/definitions/expense";
-import { UserType } from "@/definitions/User";
-
-// EXTENDED TYPES FOR GROUP PAGE
-export type GroupMemberType = UserType & {
-    avatar: string;
-    isOwed: boolean;
-    balance: number;
-};
-
-export type GroupDetailsType = GroupType & {
-    members: GroupMemberType[];
-    totalBalance: number;
-    recentExpenses: ExpenseType[];
-};
+import { friendsService } from "@/services/friendsService";
+import { useAuth } from "@/context/AuthContext";
 
 export default function GroupDetailsScreen() {
     const { colors } = useTheme();
-    const { id } = useLocalSearchParams();
+    const { id, groupString } = useLocalSearchParams();
+    const { user } = useAuth();
     const { isRefreshing, setIsRefreshing, isLoading, setIsLoading } =
         useActivity();
-    const [group, setGroup] = useState<GroupDetailsType | null>(null);
+    const [group, setGroup] = useState<GroupType | null>(
+        JSON.parse(groupString as string)
+    );
     const [loading, setLoading] = useState(true);
     const [showFriendSelector, setShowFriendSelector] = useState(false);
     const [selectedFriends, setSelectedFriends] = useState<number[]>([]);
+    const [frindsToAdd, setFriendsToAdd] = useState<UserType[]>([]);
 
     const fetchGroupDetails = async () => {
         setLoading(true);
         setIsLoading(true);
         try {
-            const details = await groupService.getGroupDetails(Number(id));
-            setGroup(details);
+            const [members, recentExpenses, friends] = await Promise.all([
+                groupService.getMembers(Number(id)),
+                groupService.getGroupExpenses(Number(id)),
+                friendsService.getFriends(user?.id ?? 0),
+            ]);
+            const newGroup: GroupType = {
+                ...group!,
+                members: members.filter(
+                    (member: UserType) => member.id !== user?.id
+                ),
+                recentExpenses,
+            };
+            setGroup(newGroup);
+            setFriendsToAdd(
+                friends.filter(
+                    (friend: UserType) =>
+                        !members.some(
+                            (member: UserType) => member.id === friend.id
+                        )
+                )
+            );
         } catch (error) {
             setGroup(null);
         } finally {
@@ -66,6 +79,12 @@ export default function GroupDetailsScreen() {
     useEffect(() => {
         fetchGroupDetails();
     }, [id, isRefreshing]);
+
+    useEffect(() => {
+        if (group === null && !loading) {
+            router.replace("/dashboard" as RelativePathString);
+        }
+    }, [group, loading]);
 
     const handleRefresh = () => {
         setIsRefreshing(true);
@@ -80,10 +99,6 @@ export default function GroupDetailsScreen() {
         router.push("/expenses/add");
     };
 
-    const handleSettleUp = () => {
-        router.push("/expenses/settle");
-    };
-
     const toggleFriendSelection = (friendId: number) => {
         if (selectedFriends.includes(friendId)) {
             setSelectedFriends(selectedFriends.filter((id) => id !== friendId));
@@ -91,6 +106,10 @@ export default function GroupDetailsScreen() {
             setSelectedFriends([...selectedFriends, friendId]);
         }
     };
+
+    if (!group || !id) {
+        return null;
+    }
 
     const styles = StyleSheet.create({
         container: {
@@ -138,7 +157,7 @@ export default function GroupDetailsScreen() {
             marginTop: 16,
             padding: 16,
         },
-        totalBalance: {
+        totalExpenses: {
             alignItems: "center",
             marginBottom: 16,
         },
@@ -187,6 +206,15 @@ export default function GroupDetailsScreen() {
         },
         negativeAmount: {
             color: colors.error,
+        },
+        icon: {
+            backgroundColor: colors.info,
+            borderRadius: 8,
+            width: 40,
+            height: 40,
+            justifyContent: "center",
+            alignItems: "center",
+            marginRight: 12,
         },
         section: {
             backgroundColor: colors.card,
@@ -313,11 +341,70 @@ export default function GroupDetailsScreen() {
             fontSize: 16,
             color: "#fff",
         },
+        modalOverlay: {
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "rgba(0, 0, 0, 0.5)",
+            justifyContent: "center",
+            alignItems: "center",
+            zIndex: 1000,
+        },
+        modalContent: {
+            backgroundColor: colors.background,
+            borderRadius: 12,
+            width: "80%",
+            maxHeight: "70%",
+            padding: 16,
+        },
+        modalHeader: {
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: 16,
+        },
+        modalTitle: {
+            fontFamily: "Inter-SemiBold",
+            fontSize: 18,
+            color: colors.text,
+        },
+        modalList: {
+            maxHeight: 300,
+        },
+        modalItem: {
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "center",
+            paddingVertical: 12,
+            borderBottomWidth: 1,
+            borderBottomColor: colors.background,
+        },
+        modalItemText: {
+            fontFamily: "Inter-Regular",
+            fontSize: 16,
+            color: colors.text,
+        },
+        selectedIndicator: {
+            width: 16,
+            height: 16,
+            borderRadius: 8,
+            backgroundColor: colors.primary,
+        },
+        modalButton: {
+            backgroundColor: colors.primary,
+            borderRadius: 8,
+            padding: 12,
+            alignItems: "center",
+            marginTop: 16,
+        },
+        modalButtonText: {
+            fontFamily: "Inter-Medium",
+            fontSize: 16,
+            color: colors.background,
+        },
     });
-    if (!group) {
-        router.replace("/dashboard" as RelativePathString);
-        return null;
-    }
 
     return (
         <View style={styles.container}>
@@ -325,21 +412,19 @@ export default function GroupDetailsScreen() {
                 <View style={styles.headerTop}>
                     <TouchableOpacity
                         style={styles.backButton}
-                        onPress={() => router.back()}
-                    >
+                        onPress={() => router.back()}>
                         <ArrowLeft size={24} color={colors.text} />
                     </TouchableOpacity>
                     <TouchableOpacity
                         style={styles.settingsButton}
-                        onPress={() => router.push(`/groups/${id}/settings`)}
-                    >
+                        onPress={() => router.push(`/groups/${id}/settings`)}>
                         <PencilLineIcon size={24} color={colors.text} />
                     </TouchableOpacity>
                 </View>
                 <View style={styles.headerContent}>
                     <Text style={styles.groupName}>{group.name}</Text>
                     <Text style={styles.memberCount}>
-                        {group.members.length} members
+                        {group.members?.length || 0} members
                     </Text>
                 </View>
             </View>
@@ -350,12 +435,13 @@ export default function GroupDetailsScreen() {
                         refreshing={isRefreshing}
                         onRefresh={handleRefresh}
                     />
-                }
-            >
+                }>
                 <View style={styles.balanceSummary}>
-                    <View style={styles.totalBalance}>
+                    <View style={styles.totalExpenses}>
                         <Text style={styles.balanceAmount}>
-                            {formatCurrency(group.totalBalance)}
+                            {formatCurrency(
+                                group.positiveBalance + group.negativeBalance
+                            )}
                         </Text>
                         <Text style={styles.balanceLabel}>
                             Total group balance
@@ -376,8 +462,7 @@ export default function GroupDetailsScreen() {
                                     style={[
                                         styles.balanceItemAmount,
                                         styles.positiveAmount,
-                                    ]}
-                                >
+                                    ]}>
                                     {formatCurrency(150.25)}
                                 </Text>
                             </View>
@@ -396,8 +481,7 @@ export default function GroupDetailsScreen() {
                                     style={[
                                         styles.balanceItemAmount,
                                         styles.negativeAmount,
-                                    ]}
-                                >
+                                    ]}>
                                     {formatCurrency(75.5)}
                                 </Text>
                             </View>
@@ -410,51 +494,50 @@ export default function GroupDetailsScreen() {
                         <Text style={styles.sectionTitle}>Members</Text>
                         <TouchableOpacity
                             style={styles.actionButton}
-                            onPress={handleAddMember}
-                        >
+                            onPress={handleAddMember}>
                             <UserPlus size={16} color={colors.primary} />
                             <Text style={styles.actionButtonText}>Add</Text>
                         </TouchableOpacity>
                     </View>
-                    {group.members.map((member: GroupMemberType) => (
-                        <TouchableOpacity
-                            key={member.id}
-                            style={styles.memberItem}
-                            onPress={() =>
-                                router.push(`/groups/members/${member.id}`)
-                            }
-                        >
-                            <Image
-                                source={{ uri: member.avatar }}
-                                style={styles.memberAvatar}
-                            />
-                            <View style={styles.memberInfo}>
-                                <Text style={styles.memberName}>
-                                    {member.name}
-                                </Text>
-                                <Text
-                                    style={[
-                                        styles.memberBalance,
-                                        member.isOwed
-                                            ? styles.positiveAmount
-                                            : styles.negativeAmount,
-                                    ]}
-                                >
-                                    {member.isOwed
-                                        ? `owes ${formatCurrency(
-                                              member.balance
-                                          )}`
-                                        : `you owe ${formatCurrency(
-                                              member.balance
-                                          )}`}
-                                </Text>
-                            </View>
-                            <ArrowRight
-                                size={20}
-                                color={colors.secondaryText}
-                            />
-                        </TouchableOpacity>
-                    ))}
+                    {(group.members || []).map((member: UserType) => {
+                        member.balance = member.balance || 0;
+                        return (
+                            <TouchableOpacity
+                                key={member.id}
+                                style={styles.memberItem}
+                                onPress={() =>
+                                    router.push(`/groups/friends/${member.id}`)
+                                }>
+                                <View style={styles.icon}>
+                                    <User size={24} color={colors.text} />
+                                </View>
+                                <View style={styles.memberInfo}>
+                                    <Text style={styles.memberName}>
+                                        {member.name}
+                                    </Text>
+                                    <Text
+                                        style={[
+                                            styles.memberBalance,
+                                            member.balance >= 0
+                                                ? styles.positiveAmount
+                                                : styles.negativeAmount,
+                                        ]}>
+                                        {member.balance >= 0
+                                            ? `owes ${formatCurrency(
+                                                  member.balance
+                                              )}`
+                                            : `you owe ${formatCurrency(
+                                                  member.balance
+                                              )}`}
+                                    </Text>
+                                </View>
+                                <ArrowRight
+                                    size={20}
+                                    color={colors.secondaryText}
+                                />
+                            </TouchableOpacity>
+                        );
+                    })}
                 </View>
 
                 <View style={styles.section}>
@@ -462,137 +545,88 @@ export default function GroupDetailsScreen() {
                         <Text style={styles.sectionTitle}>Recent Expenses</Text>
                         <TouchableOpacity
                             style={styles.actionButton}
-                            onPress={handleAddExpense}
-                        >
+                            onPress={handleAddExpense}>
                             <PlusCircle size={16} color={colors.primary} />
                             <Text style={styles.actionButtonText}>Add</Text>
                         </TouchableOpacity>
                     </View>
-                    {group.recentExpenses.map((expense: ExpenseType) => (
-                        <TouchableOpacity
-                            key={expense.id}
-                            style={styles.expenseItem}
-                            onPress={() =>
-                                router.push(`/expenses/${expense.id}`)
-                            }
-                        >
-                            <View style={styles.expenseInfo}>
-                                <Text style={styles.expenseDescription}>
-                                    {expense.description}
-                                </Text>
-                                <View style={styles.expenseDetails}>
-                                    <Text style={styles.expenseDate}>
-                                        {formatDate(expense.createdDate)}
+                    {(group.recentExpenses || []).map(
+                        (expense: ExpenseType) => (
+                            <TouchableOpacity
+                                key={expense.id}
+                                style={styles.expenseItem}
+                                onPress={() =>
+                                    router.push(`/expenses/${expense.id}`)
+                                }>
+                                <View style={styles.expenseInfo}>
+                                    <Text style={styles.expenseDescription}>
+                                        {expense.description}
                                     </Text>
-                                    <Text style={styles.expensePaidBy}>
-                                        {expense.paidBy &&
-                                        expense.paidBy.id ===
-                                            group?.members.find(
-                                                (m) =>
-                                                    m.id === expense.paidBy.id
-                                            )?.id
-                                            ? "You paid"
-                                            : `${expense.paidBy?.name} paid`}
-                                    </Text>
+                                    <View style={styles.expenseDetails}>
+                                        <Text style={styles.expenseDate}>
+                                            {formatDate(expense.createdDate)}
+                                        </Text>
+                                        <Text style={styles.expensePaidBy}>
+                                            {expense.paidBy &&
+                                            expense.paidBy.id ===
+                                                group?.members?.find(
+                                                    (m) =>
+                                                        m.id ===
+                                                        expense.paidBy.id
+                                                )?.id
+                                                ? "You paid"
+                                                : `${expense.paidBy?.name} paid`}
+                                        </Text>
+                                    </View>
                                 </View>
-                            </View>
-                            <Text style={styles.expenseAmount}>
-                                {formatCurrency(expense.amount)}
-                            </Text>
-                            <ArrowRight
-                                size={20}
-                                color={colors.secondaryText}
-                                style={{ marginLeft: 8 }}
-                            />
-                        </TouchableOpacity>
-                    ))}
+                                <Text style={styles.expenseAmount}>
+                                    {formatCurrency(expense.amount)}
+                                </Text>
+                                <ArrowRight
+                                    size={20}
+                                    color={colors.secondaryText}
+                                    style={{ marginLeft: 8 }}
+                                />
+                            </TouchableOpacity>
+                        )
+                    )}
                 </View>
             </ScrollView>
             {showFriendSelector && (
-                <View
-                    style={{
-                        position: "absolute",
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        backgroundColor: "rgba(0,0,0,0.5)",
-                        justifyContent: "center",
-                        alignItems: "center",
-                    }}
-                >
-                    <View
-                        style={{
-                            backgroundColor: colors.card,
-                            borderRadius: 16,
-                            padding: 24,
-                            width: "80%",
-                            maxHeight: "70%",
-                        }}
-                    >
-                        <Text
-                            style={{
-                                fontFamily: "Inter-SemiBold",
-                                fontSize: 18,
-                                marginBottom: 16,
-                            }}
-                        >
-                            Select Friends to Add
-                        </Text>
-                        <ScrollView style={{ maxHeight: 300 }}>
-                            {/* Replace with your friends list */}
-                            {[
-                                { id: 1, name: "John Doe" },
-                                { id: 2, name: "Jane Smith" },
-                                { id: 3, name: "Mike Johnson" },
-                            ].map((friend) => (
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>Add Friend</Text>
+                            <TouchableOpacity
+                                onPress={() => setShowFriendSelector(false)}>
+                                <X size={24} color={colors.text} />
+                            </TouchableOpacity>
+                        </View>
+
+                        <ScrollView style={styles.modalList}>
+                            {frindsToAdd.map((friend) => (
                                 <TouchableOpacity
                                     key={friend.id}
-                                    style={{
-                                        flexDirection: "row",
-                                        alignItems: "center",
-                                        paddingVertical: 12,
-                                    }}
+                                    style={styles.modalItem}
                                     onPress={() =>
                                         toggleFriendSelection(friend.id)
-                                    }
-                                >
-                                    <Text style={{ flex: 1, fontSize: 16 }}>
+                                    }>
+                                    <Text style={styles.modalItemText}>
                                         {friend.name}
                                     </Text>
                                     {selectedFriends.includes(friend.id) && (
                                         <View
-                                            style={{
-                                                width: 20,
-                                                height: 20,
-                                                borderRadius: 10,
-                                                backgroundColor: colors.primary,
-                                                marginLeft: 8,
-                                            }}
+                                            style={styles.selectedIndicator}
                                         />
                                     )}
                                 </TouchableOpacity>
                             ))}
                         </ScrollView>
+
                         <TouchableOpacity
-                            style={{
-                                marginTop: 24,
-                                backgroundColor: colors.primary,
-                                borderRadius: 8,
-                                padding: 12,
-                                alignItems: "center",
-                            }}
-                            onPress={() => setShowFriendSelector(false)}
-                        >
-                            <Text
-                                style={{
-                                    color: "#fff",
-                                    fontFamily: "Inter-SemiBold",
-                                    fontSize: 16,
-                                }}
-                            >
-                                Done
-                            </Text>
+                            style={styles.modalButton}
+                            onPress={() => setShowFriendSelector(false)}>
+                            <Text style={styles.modalButtonText}>Done</Text>
                         </TouchableOpacity>
                     </View>
                 </View>

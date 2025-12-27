@@ -9,7 +9,7 @@ import { friendsService } from "@/services/friendsService";
 import { groupService } from "@/services/groupsService";
 import { formatCurrency } from "@/util/commonFunctions";
 import { RouteProp, useRoute } from "@react-navigation/native";
-import { router, useRouter } from "expo-router";
+import { RelativePathString, router, useRouter } from "expo-router";
 import { Plus, Search, User, UserPlus, Users } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
 import {
@@ -344,8 +344,7 @@ export default function GroupsScreen() {
                         styles.tab,
                         activeTab === "groups" && styles.activeTab,
                     ]}
-                    onPress={() => setActiveTab("groups")}
-                >
+                    onPress={() => setActiveTab("groups")}>
                     <Users
                         size={18}
                         color={
@@ -358,8 +357,7 @@ export default function GroupsScreen() {
                         style={[
                             styles.tabText,
                             activeTab === "groups" && styles.activeTabText,
-                        ]}
-                    >
+                        ]}>
                         Groups
                     </Text>
                 </TouchableOpacity>
@@ -369,8 +367,7 @@ export default function GroupsScreen() {
                         styles.tab,
                         activeTab === "friends" && styles.activeTab,
                     ]}
-                    onPress={() => setActiveTab("friends")}
-                >
+                    onPress={() => setActiveTab("friends")}>
                     <User
                         size={18}
                         color={
@@ -383,8 +380,7 @@ export default function GroupsScreen() {
                         style={[
                             styles.tabText,
                             activeTab === "friends" && styles.activeTabText,
-                        ]}
-                    >
+                        ]}>
                         Friends
                     </Text>
                 </TouchableOpacity>
@@ -393,8 +389,7 @@ export default function GroupsScreen() {
                         styles.tab,
                         activeTab === "requests" && styles.activeTab,
                     ]}
-                    onPress={() => setActiveTab("requests")}
-                >
+                    onPress={() => setActiveTab("requests")}>
                     <UserPlus
                         size={18}
                         color={
@@ -407,8 +402,7 @@ export default function GroupsScreen() {
                         style={[
                             styles.tabText,
                             activeTab === "requests" && styles.activeTabText,
-                        ]}
-                    >
+                        ]}>
                         Requests
                     </Text>
                 </TouchableOpacity>
@@ -421,14 +415,12 @@ export default function GroupsScreen() {
                         refreshing={isRefreshing}
                         onRefresh={onLoadCallAPIs}
                     />
-                }
-            >
+                }>
                 {activeTab === "groups" ? (
                     <>
                         <TouchableOpacity
                             style={styles.addButton}
-                            onPress={() => router.push("/groups/create")}
-                        >
+                            onPress={() => router.push("/groups/create")}>
                             <Plus size={20} color={colors.primary} />
                             <Text style={styles.addButtonText}>
                                 Create a new group
@@ -441,9 +433,15 @@ export default function GroupsScreen() {
                                     key={group.id}
                                     style={styles.groupItem}
                                     onPress={() =>
-                                        router.push(`/groups/${group.id}`)
-                                    }
-                                >
+                                        router.push({
+                                            pathname:
+                                                `/groups/${group.id}` as RelativePathString,
+                                            params: {
+                                                groupString:
+                                                    JSON.stringify(group),
+                                            },
+                                        })
+                                    }>
                                     <View style={styles.groupIcon}>
                                         <Users size={24} color={colors.text} />
                                     </View>
@@ -457,7 +455,10 @@ export default function GroupsScreen() {
                                     </View>
                                     <View style={styles.groupBalance}>
                                         <Text style={styles.groupBalanceAmount}>
-                                            {formatCurrency(group.amountOwed)}
+                                            {formatCurrency(
+                                                group.positiveBalance +
+                                                    group.negativeBalance
+                                            )}
                                         </Text>
                                         <Text style={styles.groupBalanceLabel}>
                                             total
@@ -477,8 +478,7 @@ export default function GroupsScreen() {
                     <>
                         <TouchableOpacity
                             style={styles.addButton}
-                            onPress={() => router.push("/groups/add-friend")}
-                        >
+                            onPress={() => router.push("/groups/add-friend")}>
                             <Plus size={20} color={colors.primary} />
                             <Text style={styles.addButtonText}>
                                 Add a new friend
@@ -494,8 +494,7 @@ export default function GroupsScreen() {
                                         router.push(
                                             `/groups/friends/${friend.id}`
                                         )
-                                    }
-                                >
+                                    }>
                                     <View style={styles.friendIcon}>
                                         <User size={24} color={colors.text} />
                                     </View>
@@ -510,8 +509,7 @@ export default function GroupsScreen() {
                                                     friend.balance
                                                         ? styles.positiveBalance
                                                         : styles.negativeBalance,
-                                                ]}
-                                            >
+                                                ]}>
                                                 {friend.balance > 0
                                                     ? `owes you ${formatCurrency(
                                                           friend.balance
@@ -559,8 +557,7 @@ export default function GroupsScreen() {
                                         style={styles.addButton}
                                         onPress={() =>
                                             handleUpdateFriendRequest(friend.id)
-                                        }
-                                    >
+                                        }>
                                         {friend.id === addingtoFriends ? (
                                             <ActivityIndicator
                                                 size={20}

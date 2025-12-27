@@ -270,15 +270,13 @@ export default function CreateGroupScreen() {
             <View style={styles.header}>
                 <TouchableOpacity
                     style={styles.backButton}
-                    onPress={() => router.back()}
-                >
+                    onPress={() => router.back()}>
                     <ArrowLeft size={24} color={colors.text} />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Create Group</Text>
                 <TouchableOpacity
                     style={styles.saveButton}
-                    onPress={handleSave}
-                >
+                    onPress={handleSave}>
                     <Text style={styles.saveButtonText}>Save</Text>
                 </TouchableOpacity>
             </View>
@@ -317,8 +315,7 @@ export default function CreateGroupScreen() {
                         <Text style={styles.label}>Members</Text>
                         <TouchableOpacity
                             style={styles.selectorButton}
-                            onPress={() => setShowFriendSelector(true)}
-                        >
+                            onPress={() => setShowFriendSelector(true)}>
                             <Users size={20} color={colors.secondaryText} />
                             <Text style={styles.selectorButtonText}>
                                 {getSelectedFriendsText()}
@@ -342,16 +339,14 @@ export default function CreateGroupScreen() {
                             return (
                                 <View
                                     key={friend.id}
-                                    style={styles.selectedFriendItem}
-                                >
+                                    style={styles.selectedFriendItem}>
                                     <Text style={styles.selectedFriendName}>
                                         {friend.name}
                                     </Text>
                                     <TouchableOpacity
                                         onPress={() =>
                                             toggleFriendSelection(friend.id)
-                                        }
-                                    >
+                                        }>
                                         <X
                                             size={20}
                                             color={colors.secondaryText}
@@ -372,37 +367,47 @@ export default function CreateGroupScreen() {
                                 Select Friends
                             </Text>
                             <TouchableOpacity
-                                onPress={() => setShowFriendSelector(false)}
-                            >
+                                onPress={() => setShowFriendSelector(false)}>
                                 <X size={24} color={colors.text} />
                             </TouchableOpacity>
                         </View>
 
                         <ScrollView style={styles.modalList}>
-                            {friendList.map((friend) => (
-                                <TouchableOpacity
-                                    key={friend.id}
-                                    style={styles.modalItem}
-                                    onPress={() =>
-                                        toggleFriendSelection(friend.id)
-                                    }
-                                >
-                                    <Text style={styles.modalItemText}>
-                                        {friend.name}
-                                    </Text>
-                                    {selectedFriends.includes(friend.id) && (
-                                        <View
-                                            style={styles.selectedIndicator}
-                                        />
-                                    )}
-                                </TouchableOpacity>
-                            ))}
+                            {friendList.length === 0 ? (
+                                <Text
+                                    style={{
+                                        textAlign: "center",
+                                        margin: 20,
+                                        ...styles.modalItemText,
+                                    }}>
+                                    No friends found
+                                </Text>
+                            ) : (
+                                friendList.map((friend) => (
+                                    <TouchableOpacity
+                                        key={friend.id}
+                                        style={styles.modalItem}
+                                        onPress={() =>
+                                            toggleFriendSelection(friend.id)
+                                        }>
+                                        <Text style={styles.modalItemText}>
+                                            {friend.name}
+                                        </Text>
+                                        {selectedFriends.includes(
+                                            friend.id
+                                        ) && (
+                                            <View
+                                                style={styles.selectedIndicator}
+                                            />
+                                        )}
+                                    </TouchableOpacity>
+                                ))
+                            )}
                         </ScrollView>
 
                         <TouchableOpacity
                             style={styles.modalButton}
-                            onPress={() => setShowFriendSelector(false)}
-                        >
+                            onPress={() => setShowFriendSelector(false)}>
                             <Text style={styles.modalButtonText}>Done</Text>
                         </TouchableOpacity>
                     </View>

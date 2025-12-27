@@ -1,3 +1,4 @@
+import { ExpenseType } from "./expense";
 import { UserType } from "./User";
 
 export type GroupType = {
@@ -7,4 +8,8 @@ export type GroupType = {
     createdBy: number;
     amountOwed: number;
     createdDate: Date;
+    members?: UserType[];
+    positiveBalance: number;
+    negativeBalance: number;
+    recentExpenses: ExpenseType[];
 };

@@ -46,6 +46,10 @@ export default function FriendDetailsScreen() {
     };
 
     const handleSettleUp = async () => {
+        if (balance === 0) {
+            showAlert("Info", "No balance to settle up");
+            return;
+        }
         try {
             setLoading(true);
             await friendsService.settleFriendExpenses({
@@ -192,7 +196,7 @@ export default function FriendDetailsScreen() {
         settleButtonText: {
             fontFamily: "Inter-SemiBold",
             fontSize: 16,
-            color: "#fff",
+            color: colors.text,
         },
     });
 
@@ -219,8 +223,7 @@ export default function FriendDetailsScreen() {
             <View style={styles.header}>
                 <TouchableOpacity
                     style={styles.backButton}
-                    onPress={() => router.back()}
-                >
+                    onPress={() => router.back()}>
                     <ArrowLeft size={24} color={colors.text} />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Friend Details</Text>
@@ -256,8 +259,7 @@ export default function FriendDetailsScreen() {
                                         : balance < 0
                                         ? styles.negativeBalance
                                         : null,
-                                ]}
-                            >
+                                ]}>
                                 {balance > 0
                                     ? `owes you ${formatCurrency(balance)}`
                                     : balance < 0
@@ -285,8 +287,7 @@ export default function FriendDetailsScreen() {
                     </View>
                     <TouchableOpacity
                         style={styles.settleButton}
-                        onPress={handleSettleUp}
-                    >
+                        onPress={handleSettleUp}>
                         <Text style={styles.settleButtonText}>Settle Up</Text>
                     </TouchableOpacity>
                 </View>
