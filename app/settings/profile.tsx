@@ -3,7 +3,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
 import { userService } from "@/services/userService";
 import { ValidationUtil } from "@/util/validations";
-import * as ImagePicker from "expo-image-picker";
+// import * as ImagePicker from "expo-image-picker";
 import { RelativePathString, router } from "expo-router";
 import { Camera, Mail, User } from "lucide-react-native";
 import { forwardRef, useImperativeHandle, useState } from "react";
@@ -86,16 +86,15 @@ const ProfileEditScreen = forwardRef((props, ref) => {
     };
 
     const pickImage = async () => {
-        const result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.Images,
-            allowsEditing: true,
-            aspect: [1, 1],
-            quality: 1,
-        });
-
-        if (!result.canceled) {
-            setAvatar(result.assets[0].uri);
-        }
+        // const result = await ImagePicker.launchImageLibraryAsync({
+        //     mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        //     allowsEditing: true,
+        //     aspect: [1, 1],
+        //     quality: 1,
+        // });
+        // if (!result.canceled) {
+        //     setAvatar(result.assets[0].uri);
+        // }
     };
 
     const handleCancel = () => {
@@ -285,16 +284,14 @@ const ProfileEditScreen = forwardRef((props, ref) => {
     return (
         <KeyboardAvoidingView
             behavior={Platform.OS === "ios" ? "padding" : "height"}
-            style={styles.container}
-        >
+            style={styles.container}>
             <ScrollView style={styles.content}>
                 <View style={styles.avatarSection}>
                     <View style={styles.avatarContainer}>
                         <Image source={{ uri: avatar }} style={styles.avatar} />
                         <TouchableOpacity
                             style={styles.cameraButton}
-                            onPress={pickImage}
-                        >
+                            onPress={pickImage}>
                             <Camera size={20} color="#fff" />
                         </TouchableOpacity>
                     </View>
@@ -358,8 +355,7 @@ const ProfileEditScreen = forwardRef((props, ref) => {
                                         !usernameFieldError
                                             ? styles.usernameAvailable
                                             : styles.usernameUnavailable,
-                                    ]}
-                                >
+                                    ]}>
                                     {usernameFieldError
                                         ? usernameFieldError
                                         : isCheckingUsername
@@ -395,8 +391,7 @@ const ProfileEditScreen = forwardRef((props, ref) => {
                                 user?.email != email) && (
                                 <TouchableOpacity
                                     style={styles.verifyButton}
-                                    onPress={handleVerifyEmail}
-                                >
+                                    onPress={handleVerifyEmail}>
                                     <Text style={styles.verifyButtonText}>
                                         Verify
                                     </Text>
@@ -445,14 +440,12 @@ const ProfileEditScreen = forwardRef((props, ref) => {
                 <View style={styles.buttonContainer}>
                     <TouchableOpacity
                         style={styles.cancelButton}
-                        onPress={handleCancel}
-                    >
+                        onPress={handleCancel}>
                         <Text style={styles.cancelButtonText}>Cancel</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                         style={styles.saveButton}
-                        onPress={handleSave}
-                    >
+                        onPress={handleSave}>
                         <Text style={styles.saveButtonText}>Save</Text>
                     </TouchableOpacity>
                 </View>

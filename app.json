@@ -1,56 +1,70 @@
 {
-  "expo": {
-    "name": "Sharemates",
-    "slug": "sharemateapp",
-    "version": "1.0.0",
-    "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
-    "scheme": "myapp",
-    "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
-    "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "dev.pawan.Sharemates",
-      "buildNumber": "1.0.0",
-      "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
-      }
-    },
-    "web": {
-      "bundler": "metro",
-      "output": "single",
-      "favicon": "./assets/images/favicon.png"
-    },
-    "plugins": [
-      "expo-router",
-      [
-        "expo-splash-screen",
-        {
-          "backgroundColor": "#232323",
-          "image": "./assets/images/icon.png",
-          "dark": {
-            "image": "./assets/images/icon.png",
-            "backgroundColor": "#000000"
-          },
-          "imageWidth": 200
-        }
-      ]
-    ],
-    "experiments": {
-      "typedRoutes": true
-    },
-    "android": {
-      "package": "dev.pawan.Sharemates",
-      "googleServicesFile": "./google-services.json"
-    },
-    "extra": {
-      "router": {
-        "origin": false
-      },
-      "eas": {
-        "projectId": "fa2be221-01ce-427b-a4e1-b7310ac01d76"
-      }
-    },
-    "owner": "hellboundhero"
-  }
+    "expo": {
+        "name": "Sharemates",
+        "slug": "sharemateapp",
+        "version": "1.0.0",
+        "orientation": "portrait",
+        "icon": "./assets/images/icon.png",
+        "scheme": "myapp",
+        "userInterfaceStyle": "automatic",
+        "newArchEnabled": true,
+        "ios": {
+            "supportsTablet": true,
+            "bundleIdentifier": "dev.pawan.Sharemates",
+            "buildNumber": "1.0.0",
+            "infoPlist": {
+                "ITSAppUsesNonExemptEncryption": false
+            }
+        },
+        "web": {
+            "bundler": "metro",
+            "output": "single",
+            "favicon": "./assets/images/favicon.png"
+        },
+        "plugins": [
+            "expo-router",
+            [
+                "expo-splash-screen",
+                {
+                    "backgroundColor": "#F7F7F7",
+                    "image": "./assets/images/icon.png",
+                    "dark": {
+                        "image": "./assets/images/icon.png",
+                        "backgroundColor": "#121212"
+                    },
+                    "imageWidth": 200
+                }
+            ],
+            [
+                "expo-build-properties",
+                {
+                    "android": {
+                        "compileSdkVersion": 35,
+                        "buildToolsVersion": "35.0.0",
+                        "targetSdkVersion": 35,
+                        "minSdkVersion": 24,
+                        "kotlinVersion": "1.9.25",
+                        "enableMinifyInReleaseBuilds": true,
+                        "recordCompilationErrors": true
+                    }
+                }
+            ]
+        ],
+        "experiments": {
+            "typedRoutes": true
+        },
+        "android": {
+            "package": "dev.pawan.Sharemates",
+            "googleServicesFile": "./google-services.json"
+        },
+        "extra": {
+            "router": {
+                "origin": false
+            },
+            "eas": {
+                "projectId": "fa2be221-01ce-427b-a4e1-b7310ac01d76"
+            }
+        },
+        "owner": "hellboundhero"
+    }
 }
