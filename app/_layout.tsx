@@ -57,9 +57,9 @@ export default function RootLayout() {
     return (
         <ThemeProvider>
             <PreferencesContextProvider>
-                <AuthProvider>
-                    <NotificationProvider>
-                        <AlertProvider>
+                <AlertProvider>
+                    <AuthProvider>
+                        <NotificationProvider>
                             <ActivityContextProvider>
                                 <Stack screenOptions={{ headerShown: false }}>
                                     <Stack.Screen
@@ -77,9 +77,9 @@ export default function RootLayout() {
                                 </Stack>
                                 <StatusBar style="auto" />
                             </ActivityContextProvider>
-                        </AlertProvider>
-                    </NotificationProvider>
-                </AuthProvider>
+                        </NotificationProvider>
+                    </AuthProvider>
+                </AlertProvider>
             </PreferencesContextProvider>
         </ThemeProvider>
     );

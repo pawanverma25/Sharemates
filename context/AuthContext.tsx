@@ -1,13 +1,11 @@
 import { AuthResponse, UserType } from "@/definitions/User";
-import apiClient from "@/services/apiClient";
-import { userService } from "@/services/userService";
-import { RelativePathString, router } from "expo-router";
-import * as SecureStore from "expo-secure-store";
-import React, { createContext, useContext, useState } from "react";
-import { ToastAndroid } from "react-native";
-import { usePreferences } from "./PreferencesContext";
 import { authService } from "@/services/authService";
 import { storageService } from "@/services/storageService";
+import { userService } from "@/services/userService";
+import { RelativePathString, router } from "expo-router";
+import React, { createContext, useContext, useState } from "react";
+import { useAlert } from "./AlertContext";
+import { usePreferences } from "./PreferencesContext";
 
 type AuthContextType = {
     user: UserType | null;
@@ -33,6 +31,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const { preferences, setPreferences } = usePreferences();
+    const { showToast } = useAlert();
 
     const signInAuto = async () => {
         const curUser = await storageService.getItemAsync("user");
@@ -51,26 +50,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             );
             authResponse.user.emailVerified = authResponse.emailVerified;
 
-            ToastAndroid.showWithGravity(authResponse.message, 1000, 10);
+            showToast(authResponse.message);
 
             await Promise.all([
-                SecureStore.setItemAsync(
+                storageService.setItemAsync(
                     "user",
                     JSON.stringify(authResponse.user)
                 ),
-                SecureStore.setItemAsync("token", authResponse.authorization),
-                SecureStore.setItemAsync(
+                storageService.setItemAsync(
+                    "token",
+                    authResponse.authorization
+                ),
+                storageService.setItemAsync(
                     "tokenExpiry",
                     authResponse.expiresIn + ""
                 ),
-                SecureStore.setItemAsync(
+                storageService.setItemAsync(
                     "userCredentials",
                     JSON.stringify({
                         email,
                         password,
                     })
                 ),
-                SecureStore.setItemAsync(
+                storageService.setItemAsync(
                     "lastLogin",
                     JSON.stringify(new Date().getTime())
                 ),
@@ -82,7 +84,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
                     .getUserPreferences(authResponse.user.id)
                     .then((prefs) => {
                         setPreferences(prefs);
-                        SecureStore.setItemAsync(
+                        storageService.setItemAsync(
                             "preferences",
                             JSON.stringify(prefs)
                         );
@@ -100,11 +102,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             else router.replace("/verify-email" as RelativePathString);
         } catch (e) {
             setError("Invalid email or password");
-            ToastAndroid.showWithGravity(
-                "Login failed. Please check your credentials.",
-                1000,
-                10
-            );
+            showToast("Login failed. Please check your credentials.");
             await storageService.removeUserSession();
         } finally {
             setIsLoading(false);
@@ -129,26 +127,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             );
             authResponse.user.emailVerified = authResponse.emailVerified;
 
-            ToastAndroid.showWithGravity(authResponse.message, 1000, 10);
+            showToast(authResponse.message);
 
             await Promise.all([
-                SecureStore.setItemAsync(
+                storageService.setItemAsync(
                     "user",
                     JSON.stringify(authResponse.user)
                 ),
-                SecureStore.setItemAsync("token", authResponse.authorization),
-                SecureStore.setItemAsync(
+                storageService.setItemAsync(
+                    "token",
+                    authResponse.authorization
+                ),
+                storageService.setItemAsync(
                     "tokenExpiry",
                     authResponse.expiresIn + ""
                 ),
-                SecureStore.setItemAsync(
+                storageService.setItemAsync(
                     "userCredentials",
                     JSON.stringify({
                         email,
                         password,
                     })
                 ),
-                SecureStore.setItemAsync(
+                storageService.setItemAsync(
                     "lastLogin",
                     JSON.stringify(new Date().getTime())
                 ),
@@ -158,11 +159,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         } catch (e) {
             setError("Registration failed. Please try again.");
             console.error("Registration failed", e);
-            ToastAndroid.showWithGravity(
-                "Registration failed. Please try again.",
-                1000,
-                10
-            );
+            showToast("Registration failed. Please try again.");
         } finally {
             setIsLoading(false);
         }
@@ -175,14 +172,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             storageService.removeUserSession();
             setUser(null);
             router.replace("/" as RelativePathString);
-            ToastAndroid.showWithGravity("Logged out successfully.", 1000, 10);
+            showToast("Logged out successfully.");
         } catch (e) {
             console.error("Logout failed", e);
-            ToastAndroid.showWithGravity(
-                "Logout failed. Please try again.",
-                1000,
-                10
-            );
+
+            showToast("Logout failed. Please try again.");
         } finally {
             setIsLoading(false);
         }
@@ -198,8 +192,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
                 signOut,
                 error,
                 signInAuto,
-            }}
-        >
+            }}>
             {children}
         </AuthContext.Provider>
     );

@@ -10,7 +10,7 @@ import React, {
     useRef,
     useState,
 } from "react";
-import { ToastAndroid } from "react-native";
+import { useAlert } from "./AlertContext";
 
 interface NotificationContextType {
     expoPushToken: string | null;
@@ -47,6 +47,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
     const notificationListener = useRef<Notifications.EventSubscription>();
     const responseListener = useRef<Notifications.EventSubscription>();
     const router = useRouter();
+    const { showToast } = useAlert();
 
     useEffect(() => {
         registerForPushNotificationsAsync().then(
@@ -141,13 +142,12 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
     }, []);
 
     useEffect(() => {
-        if (error) ToastAndroid.show(error.message, 2000);
+        if (error) showToast(error.message);
     }, [error]);
 
     return (
         <NotificationContext.Provider
-            value={{ expoPushToken, notification, error }}
-        >
+            value={{ expoPushToken, notification, error }}>
             {children}
         </NotificationContext.Provider>
     );
