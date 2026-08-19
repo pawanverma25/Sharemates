@@ -14,14 +14,13 @@ export async function registerForPushNotificationsAsync() {
     }
 
     if (Device.isDevice) {
-        const { status: existingStatus } =
-            await Notifications.getPermissionsAsync();
-        let finalStatus = existingStatus;
-        if (existingStatus !== "granted") {
-            const { status } = await Notifications.requestPermissionsAsync();
-            finalStatus = status;
+        const settings: any = await Notifications.getPermissionsAsync();
+        let isGranted = settings.granted || settings.status === "granted";
+        if (!isGranted) {
+            const request: any = await Notifications.requestPermissionsAsync();
+            isGranted = request.granted || request.status === "granted";
         }
-        if (finalStatus !== "granted") {
+        if (!isGranted) {
             throw new Error(
                 "Permission not granted to get push token for push notification!"
             );
@@ -38,7 +37,6 @@ export async function registerForPushNotificationsAsync() {
                     projectId,
                 })
             ).data;
-            console.log(pushTokenString);
             return pushTokenString;
         } catch (e: unknown) {
             throw new Error(`${e}`);

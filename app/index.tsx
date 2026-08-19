@@ -11,32 +11,9 @@ export default function Index() {
     const { signIn, signInAuto } = useAuth();
 
     useEffect(() => {
-        const checkAuth = async () => {
-            setLoading(true);
-            const [user, tokenExpiry, userCredentials, lastLogin] =
-                await Promise.all([
-                    storageService.getItemAsync("user"),
-                    storageService.getItemAsync("tokenExpiry"),
-                    storageService.getItemAsync("userCredentials"),
-                    storageService.getItemAsync("lastLogin"),
-                ]);
-            if (user && tokenExpiry && userCredentials && lastLogin) {
-                // if (
-                //     new Date(Number(tokenExpiry) + Number(lastLogin)) <
-                //     new Date(Date.now())
-                // ) {
-                const { email, password } = JSON.parse(userCredentials);
-                signIn(email, password);
-                // } else {
-                //     signInAuto();
-                // }
-            } else {
-                router.replace("/login" as RelativePathString);
-            }
+        signInAuto().finally(() => {
             setLoading(false);
-        };
-
-        checkAuth();
+        });
     }, []);
 
     return (

@@ -1,4 +1,3 @@
-import { get } from "react-native/Libraries/TurboModule/TurboModuleRegistry";
 import apiClient from "./apiClient";
 
 export const groupService = {

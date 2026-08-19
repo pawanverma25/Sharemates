@@ -35,9 +35,13 @@ export default function GroupDetailsScreen() {
     const { user } = useAuth();
     const { isRefreshing, setIsRefreshing, isLoading, setIsLoading } =
         useActivity();
-    const [group, setGroup] = useState<GroupType | null>(
-        JSON.parse(groupString as string)
-    );
+    const [group, setGroup] = useState<GroupType | null>(() => {
+        try {
+            return groupString ? JSON.parse(groupString as string) : null;
+        } catch {
+            return null;
+        }
+    });
     const [loading, setLoading] = useState(true);
     const [showFriendSelector, setShowFriendSelector] = useState(false);
     const [selectedFriends, setSelectedFriends] = useState<number[]>([]);
@@ -47,13 +51,15 @@ export default function GroupDetailsScreen() {
         setLoading(true);
         setIsLoading(true);
         try {
-            const [members, recentExpenses, friends] = await Promise.all([
+            const [details, members, recentExpenses, friends] = await Promise.all([
+                group ? Promise.resolve(group) : groupService.getGroupDetails(Number(id)),
                 groupService.getMembers(Number(id)),
                 groupService.getGroupExpenses(Number(id)),
                 friendsService.getFriends(user?.id ?? 0),
             ]);
+            const baseGroup = group || details;
             const newGroup: GroupType = {
-                ...group!,
+                ...baseGroup,
                 members: members.filter(
                     (member: UserType) => member.id !== user?.id
                 ),

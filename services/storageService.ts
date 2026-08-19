@@ -23,7 +23,14 @@ export const storageService = {
         return await SecureStore.deleteItemAsync(item);
     },
     async removeUserSession() {
-        await SecureStore.deleteItemAsync("user");
-        await SecureStore.deleteItemAsync("token");
+        const keys = [
+            "user",
+            "token",
+            "tokenExpiry",
+            "userCredentials",
+            "lastLogin",
+            "preferences",
+        ];
+        await Promise.all(keys.map((key) => this.deleteItemAsync(key)));
     },
 };

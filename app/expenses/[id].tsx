@@ -35,7 +35,13 @@ export default function ExpenseDetailsScreen() {
             >
         >
     >();
-    const expense: ExpenseType = JSON.parse(route.params?.expense);
+    const [expense, setExpense] = useState<ExpenseType | null>(() => {
+        try {
+            return route.params?.expense ? JSON.parse(route.params.expense) : null;
+        } catch {
+            return null;
+        }
+    });
     const { user } = useAuth();
     const { colors } = useTheme();
     const { id } = useLocalSearchParams();
@@ -43,6 +49,7 @@ export default function ExpenseDetailsScreen() {
     const [splits, setSplits] = useState<ExpenseSplitType[]>([]);
 
     const handleEdit = () => {
+        if (!expense) return;
         router.push({
             pathname: `/expenses/edit/${id}` as RelativePathString,
             params: {
@@ -59,6 +66,7 @@ export default function ExpenseDetailsScreen() {
     };
 
     const handleSettleUp = () => {
+        if (!expense) return;
         expensesService
             .settleExpense({
                 userId: user?.id || -1,
@@ -240,6 +248,22 @@ export default function ExpenseDetailsScreen() {
             color: "#fff",
         },
     });
+
+    if (!expense) {
+        return (
+            <View style={[styles.container, { justifyContent: "center", alignItems: "center", padding: 20 }]}>
+                <Text style={{ color: colors.text, marginBottom: 16, fontSize: 16 }}>
+                    Expense details not found.
+                </Text>
+                <TouchableOpacity
+                    style={styles.settleButton}
+                    onPress={() => router.back()}
+                >
+                    <Text style={styles.settleButtonText}>Go Back</Text>
+                </TouchableOpacity>
+            </View>
+        );
+    }
 
     return (
         <View style={styles.container}>

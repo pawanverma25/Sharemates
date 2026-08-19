@@ -38,7 +38,7 @@ const ProfileEditScreen = forwardRef((props, ref) => {
     const [isUsernameAvailable, setIsUsernameAvailable] = useState(true);
     const [isCheckingUsername, setIsCheckingUsername] = useState(false);
     const [usernameApiCallTimeout, setUsernameApiCallTimeout] =
-        useState<NodeJS.Timeout | null>(null);
+        useState<ReturnType<typeof setTimeout> | null>(null);
     const [avatar, setAvatar] = useState(
         "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&fit=crop"
     );

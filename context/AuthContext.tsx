@@ -34,10 +34,60 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     const { showToast } = useAlert();
 
     const signInAuto = async () => {
-        const curUser = await storageService.getItemAsync("user");
-        setUser(curUser ? JSON.parse(curUser) : null);
-        if (curUser) router.replace("/dashboard" as RelativePathString);
-        else router.replace("/login" as RelativePathString);
+        try {
+            const [curUser, token, tokenExpiry, lastLogin] = await Promise.all([
+                storageService.getItemAsync("user"),
+                storageService.getItemAsync("token"),
+                storageService.getItemAsync("tokenExpiry"),
+                storageService.getItemAsync("lastLogin"),
+            ]);
+
+            if (!curUser || !token) {
+                await storageService.removeUserSession();
+                setUser(null);
+                router.replace("/login" as RelativePathString);
+                return;
+            }
+
+            if (tokenExpiry && lastLogin) {
+                const expiryTime = Number(lastLogin) + Number(tokenExpiry);
+                if (Date.now() > expiryTime) {
+                    await storageService.removeUserSession();
+                    setUser(null);
+                    router.replace("/login" as RelativePathString);
+                    return;
+                }
+            }
+
+            const parsedUser: UserType = JSON.parse(curUser);
+            setUser(parsedUser);
+
+            if (!preferences) {
+                userService
+                    .getUserPreferences(parsedUser.id)
+                    .then((prefs) => {
+                        setPreferences(prefs);
+                        storageService.setItemAsync(
+                            "preferences",
+                            JSON.stringify(prefs)
+                        );
+                    })
+                    .catch((error) => {
+                        console.error("Failed to fetch user preferences", error);
+                    });
+            }
+
+            if (parsedUser.emailVerified === "Y") {
+                router.replace("/dashboard" as RelativePathString);
+            } else {
+                router.replace("/verify-email" as RelativePathString);
+            }
+        } catch (e) {
+            console.error("Auto sign-in failed", e);
+            await storageService.removeUserSession();
+            setUser(null);
+            router.replace("/login" as RelativePathString);
+        }
     };
 
     const signIn = async (email: string, password: string) => {
@@ -64,13 +114,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
                 storageService.setItemAsync(
                     "tokenExpiry",
                     authResponse.expiresIn + ""
-                ),
-                storageService.setItemAsync(
-                    "userCredentials",
-                    JSON.stringify({
-                        email,
-                        password,
-                    })
                 ),
                 storageService.setItemAsync(
                     "lastLogin",
@@ -143,13 +186,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
                     authResponse.expiresIn + ""
                 ),
                 storageService.setItemAsync(
-                    "userCredentials",
-                    JSON.stringify({
-                        email,
-                        password,
-                    })
-                ),
-                storageService.setItemAsync(
                     "lastLogin",
                     JSON.stringify(new Date().getTime())
                 ),
@@ -169,13 +205,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         setIsLoading(true);
 
         try {
-            storageService.removeUserSession();
+            await storageService.removeUserSession();
             setUser(null);
-            router.replace("/" as RelativePathString);
+            router.replace("/login" as RelativePathString);
             showToast("Logged out successfully.");
         } catch (e) {
             console.error("Logout failed", e);
-
             showToast("Logout failed. Please try again.");
         } finally {
             setIsLoading(false);
