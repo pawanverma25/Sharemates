@@ -1,6 +1,6 @@
 import Alert from "@/components/ui/Alert";
 import React, { createContext, ReactNode, useContext, useState } from "react";
-import { StyleSheet } from "react-native";
+import { Platform, ToastAndroid } from "react-native";
 
 interface AlertContextType {
     showAlert: (
@@ -10,6 +10,7 @@ interface AlertContextType {
         onCancel?: () => void
     ) => void;
     hideAlert: () => void;
+    showToast: (message: string) => void;
 }
 
 const AlertContext = createContext<AlertContextType | undefined>(undefined);
@@ -26,21 +27,33 @@ export const AlertProvider = ({ children }: { children: ReactNode }) => {
     const showAlert = (
         title: string,
         message: string,
-        onConfirm?: () => void
+        onConfirm?: () => void,
+        onCancel?: () => void
     ) => {
         setAlertData({
             title,
             message,
             onConfirm: onConfirm || (() => {}),
-            onCancel: () => {},
+            onCancel: onCancel || (() => {}),
         });
         setVisible(true);
+    };
+    const showToast = (message: string) => {
+        if (Platform.OS === "android") {
+            ToastAndroid.showWithGravity(
+                message,
+                ToastAndroid.SHORT,
+                ToastAndroid.BOTTOM
+            );
+        } else {
+            showAlert("Notification", message);
+        }
     };
 
     const hideAlert = () => setVisible(false);
 
     return (
-        <AlertContext.Provider value={{ showAlert, hideAlert }}>
+        <AlertContext.Provider value={{ showAlert, hideAlert, showToast }}>
             {children}
             <Alert
                 visible={visible}
@@ -49,20 +62,24 @@ export const AlertProvider = ({ children }: { children: ReactNode }) => {
                 buttons={[
                     {
                         text: "Cancel",
-                        style: "cancel",
+                        style: "cancel" as const,
                         onPress: () => {
                             alertData.onCancel();
                             setVisible(false);
                         },
                     },
                     {
-                        text: "Proceed",
+                        text: "Okay",
                         onPress: () => {
                             alertData.onConfirm();
                             setVisible(false);
                         },
                     },
-                ]}
+                ].filter(
+                    (btn) =>
+                        btn.text !== "Cancel" ||
+                        alertData.onCancel !== (() => {})
+                )}
             />
         </AlertContext.Provider>
     );

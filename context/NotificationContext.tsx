@@ -10,7 +10,7 @@ import React, {
     useRef,
     useState,
 } from "react";
-import { ToastAndroid } from "react-native";
+import { useAlert } from "./AlertContext";
 
 interface NotificationContextType {
     expoPushToken: string | null;
@@ -47,6 +47,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
     const notificationListener = useRef<Notifications.EventSubscription>();
     const responseListener = useRef<Notifications.EventSubscription>();
     const router = useRouter();
+    const { showToast } = useAlert();
 
     useEffect(() => {
         registerForPushNotificationsAsync().then(
@@ -66,21 +67,12 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
         responseListener.current =
             Notifications.addNotificationResponseReceivedListener(
                 (response) => {
-                    console.log(
-                        "🔔 Notification Response: user intercats w the notification",
-                        JSON.stringify(response, null, 2),
-                        JSON.stringify(
-                            response.notification.request.content.data,
-                            null,
-                            2
-                        )
-                    );
-                    const rawData = response.notification.request.content.data;
+                    const rawData: any = response.notification.request.content.data;
                     const data: NotificationData = {
-                        templateCode: rawData.templateCode,
-                        errorCode: rawData.errorCode,
-                        message: rawData.message,
-                        data: rawData.data,
+                        templateCode: rawData?.templateCode || "",
+                        errorCode: rawData?.errorCode || "",
+                        message: rawData?.message || "",
+                        data: rawData?.data || {},
                     };
                     try {
                         switch (data.templateCode) {
@@ -92,7 +84,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
                                         `(tabs)/groups` as RelativePathString,
                                     params: {
                                         activeTab: "requests",
-                                        userId: data.data.friendId,
+                                        userId: data.data?.friendId,
                                     },
                                 });
                                 break;
@@ -100,54 +92,50 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
                             case "EXPENSE_UPDATED":
                             case "EXPENSE_SETTLED":
                             case "EXPENSE_REMINDER":
-                                router.push(
-                                    `/expenses/[${data.data.expenseId}]` as RelativePathString
-                                );
+                                if (data.data?.expenseId) {
+                                    router.push(
+                                        `/expenses/${data.data.expenseId}` as RelativePathString
+                                    );
+                                } else {
+                                    router.push("/expenses" as RelativePathString);
+                                }
                                 break;
                             case "GROUP_CREATED":
                             case "GROUP_MEMBER_ADDED":
                             case "YOU_JOINED_GROUP":
                             case "GROUP_DETAILS_UPDATED":
                             case "GROUP_MEMBER_REMOVED":
-                                router.push(
-                                    `/groups/[${data.data.groupId}]` as RelativePathString
-                                );
+                                if (data.data?.groupId) {
+                                    router.push(
+                                        `/groups/${data.data.groupId}` as RelativePathString
+                                    );
+                                } else {
+                                    router.push("/groups" as RelativePathString);
+                                }
                                 break;
                             default:
                                 router.push("/dashboard" as RelativePathString);
                                 break;
                         }
                     } catch (error) {
-                        router.push(
-                            "(auth)/forgot-password" as RelativePathString
-                        );
+                        router.push("/dashboard" as RelativePathString);
                     }
-                    // router.push("(auth)/forgot-password" as RelativePathString);
                 }
             );
 
         return () => {
-            if (notificationListener.current) {
-                Notifications.removeNotificationSubscription(
-                    notificationListener.current
-                );
-            }
-            if (responseListener.current) {
-                Notifications.removeNotificationSubscription(
-                    responseListener.current
-                );
-            }
+            notificationListener.current?.remove();
+            responseListener.current?.remove();
         };
     }, []);
 
     useEffect(() => {
-        if (error) ToastAndroid.show(error.message, 2000);
+        if (error) showToast(error.message);
     }, [error]);
 
     return (
         <NotificationContext.Provider
-            value={{ expoPushToken, notification, error }}
-        >
+            value={{ expoPushToken, notification, error }}>
             {children}
         </NotificationContext.Provider>
     );

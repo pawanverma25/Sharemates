@@ -37,10 +37,8 @@ export const ValidationUtil = {
         if (!text.trim()) throw new Error("Password is required");
         if (text.length < 8)
             throw new Error("Password must be at least 8 characters");
-        if (text.length > 20)
-            throw new Error("Password must be less than 20 characters");
-        if (text.match(/[^a-zA-Z0-9]/))
-            throw new Error("Password must contain only letters and numbers");
+        if (text.length > 100)
+            throw new Error("Password must be less than 100 characters");
         return true;
     },
 

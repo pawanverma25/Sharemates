@@ -6,7 +6,7 @@ import {
     ExpenseRequestType,
     ExpenseSplitType,
     ExpenseType,
-    participantType,
+    ParticipantType,
 } from "@/definitions/expense";
 import { GroupType } from "@/definitions/group";
 import { UserType } from "@/definitions/User";
@@ -51,7 +51,13 @@ export default function EditExpenseScreen() {
     const { user } = useAuth();
     const { showAlert } = useAlert();
 
-    const expense: ExpenseType = JSON.parse(route.params?.expense);
+    const expense: ExpenseType | null = (() => {
+        try {
+            return route.params?.expense ? JSON.parse(route.params.expense) : null;
+        } catch {
+            return null;
+        }
+    })();
     const { id } = useLocalSearchParams();
 
     const [group, setGroup] = useState<GroupType | null>(null);
@@ -59,14 +65,16 @@ export default function EditExpenseScreen() {
         user ? [user] : []
     );
 
-    const [description, setDescription] = useState(expense.description);
-    const [amount, setAmount] = useState<string>(expense.amount.toString());
-    const [date, setDate] = useState<Date>(new Date(expense.createdDate));
+    const [description, setDescription] = useState(expense?.description || "");
+    const [amount, setAmount] = useState<string>(expense?.amount?.toString() || "");
+    const [date, setDate] = useState<Date>(
+        expense?.createdDate ? new Date(expense.createdDate) : new Date()
+    );
     const [selectedFriends, setSelectedFriends] = useState<number[]>([]);
     const [paidBy, setPaidBy] = useState<UserType | null>(
-        expense.paidBy || null
+        expense?.paidBy || null
     );
-    const [splitType, setSplitType] = useState(expense.splitType);
+    const [splitType, setSplitType] = useState(expense?.splitType || "EQUAL");
     const [showFriendSelector, setShowFriendSelector] = useState(false);
     const [showPaidBySelector, setShowPaidBySelector] = useState(false);
     const [showDatePicker, setShowDatePicker] = useState(false);
@@ -75,6 +83,7 @@ export default function EditExpenseScreen() {
     );
 
     const handleSave = async () => {
+        if (!expense) return;
         if (!description || !amount) {
             showAlert("Error", "Please fill in all required fields");
             return;
@@ -107,7 +116,7 @@ export default function EditExpenseScreen() {
             }
         }
         const totalAmount = parseFloat(amount);
-        let participants: participantType[] = [];
+        let participants: ParticipantType[] = [];
 
         if (splitType === "EQUAL") {
             participants = selectedFriends.map((friendId) => ({
@@ -198,6 +207,7 @@ export default function EditExpenseScreen() {
     };
 
     const onLoadCallAPIs = async () => {
+        if (!expense) return;
         setIsRefreshing(true);
         Promise.all([
             friendsService
@@ -518,6 +528,22 @@ export default function EditExpenseScreen() {
             marginLeft: 4,
         },
     });
+
+    if (!expense) {
+        return (
+            <View style={[styles.container, { justifyContent: "center", alignItems: "center", padding: 20 }]}>
+                <Text style={{ color: colors.text, marginBottom: 16, fontSize: 16 }}>
+                    Expense details not found.
+                </Text>
+                <TouchableOpacity
+                    style={styles.saveButton}
+                    onPress={() => router.back()}
+                >
+                    <Text style={styles.saveButtonText}>Go Back</Text>
+                </TouchableOpacity>
+            </View>
+        );
+    }
 
     return (
         <KeyboardAvoidingView behavior="padding" style={styles.container}>

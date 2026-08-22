@@ -39,8 +39,8 @@ export default function RegisterScreen() {
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
-    const [usernameApiCallTimeout, setUsernameApiCallTimeout] = useState<NodeJS.Timeout | null>(null);
-    const [emailApiCallTimeout, setEmailApiCallTimeout] = useState<NodeJS.Timeout | null>(null);
+    const [usernameApiCallTimeout, setUsernameApiCallTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
+    const [emailApiCallTimeout, setEmailApiCallTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const validateName = (text: string) => {

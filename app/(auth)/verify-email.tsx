@@ -3,26 +3,23 @@ import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
 import { userService } from "@/services/userService";
 import { RelativePathString, router } from "expo-router";
-import { navigate } from "expo-router/build/global-state/routing";
 import { ArrowLeft, Mail } from "lucide-react-native";
 import { useEffect, useRef, useState } from "react";
 import {
+    Animated,
+    BackHandler,
     KeyboardAvoidingView,
-    Platform,
     StyleSheet,
     Text,
     TextInput,
-    ToastAndroid,
     TouchableOpacity,
     View,
-    Animated,
-    BackHandler,
 } from "react-native";
 
 export default function VerifyEmailScreen() {
     const { colors } = useTheme();
     const { user } = useAuth();
-    const { showAlert } = useAlert();
+    const { showAlert, showToast } = useAlert();
 
     const [code, setCode] = useState(["", "", "", "", "", ""]);
     const [timer, setTimer] = useState(30);
@@ -33,7 +30,7 @@ export default function VerifyEmailScreen() {
     const inputRefs = useRef<Array<TextInput | null>>([]);
 
     useEffect(() => {
-        let interval: NodeJS.Timeout;
+        let interval: ReturnType<typeof setInterval>;
         if (timer > 0) {
             interval = setInterval(() => {
                 setTimer((prev) => prev - 1);
@@ -125,11 +122,7 @@ export default function VerifyEmailScreen() {
                     enteredCode
                 );
                 if (response.status === 200) {
-                    ToastAndroid.showWithGravity(
-                        response.data,
-                        ToastAndroid.SHORT,
-                        ToastAndroid.BOTTOM
-                    );
+                    showToast(response.data);
                     router.replace("/dashboard" as RelativePathString);
                 } else if (response.status === 400) {
                     setError(response.data);
@@ -274,8 +267,7 @@ export default function VerifyEmailScreen() {
             <View style={styles.header}>
                 <TouchableOpacity
                     style={styles.backButton}
-                    onPress={() => BackHandler.exitApp()}
-                >
+                    onPress={() => BackHandler.exitApp()}>
                     <ArrowLeft size={24} color={colors.text} />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Verify Email</Text>
@@ -297,8 +289,7 @@ export default function VerifyEmailScreen() {
                     style={[
                         styles.codeContainer,
                         { transform: [{ translateX: shakeAnimation }] },
-                    ]}
-                >
+                    ]}>
                     {code.map((digit, index) => (
                         <TextInput
                             key={index}
@@ -328,15 +319,13 @@ export default function VerifyEmailScreen() {
                             styles.verifyButtonDisabled,
                     ]}
                     onPress={handleVerify}
-                    disabled={code.join("").length !== 6 || isVerifying}
-                >
+                    disabled={code.join("").length !== 6 || isVerifying}>
                     <Text
                         style={[
                             styles.verifyButtonText,
                             (code.join("").length !== 6 || isVerifying) &&
                                 styles.verifyButtonTextDisabled,
-                        ]}
-                    >
+                        ]}>
                         {isVerifying ? "Verifying..." : "Verify Email"}
                     </Text>
                 </TouchableOpacity>
@@ -347,20 +336,18 @@ export default function VerifyEmailScreen() {
                     </Text>
                     <TouchableOpacity
                         onPress={handleResend}
-                        disabled={timer > 0 || isResending}
-                    >
+                        disabled={timer > 0 || isResending}>
                         <Text
                             style={[
                                 styles.resendButton,
                                 (timer > 0 || isResending) &&
                                     styles.resendButtonDisabled,
-                            ]}
-                        >
+                            ]}>
                             {isResending
                                 ? "Sending..."
                                 : timer > 0
-                                ? `Resend in ${timer}s`
-                                : "Resend"}
+                                  ? `Resend in ${timer}s`
+                                  : "Resend"}
                         </Text>
                     </TouchableOpacity>
                 </View>
